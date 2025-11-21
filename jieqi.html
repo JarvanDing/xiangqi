@@ -21,13 +21,13 @@
             <div class="board-wrapper">
                 <!-- 上方：显示被黑方吃掉的棋子（红方棋子） -->
                 <div id="captured-black" class="captured-pieces captured-top"></div>
-                
+
                 <div id="chessboard" class="chessboard">
                     <!-- 棋盘线和楚河汉界将由 CSS 或 JS 绘制，棋子将放置在此处 -->
                     <div class="grid-overlay"></div>
                     <div class="pieces-layer"></div>
                 </div>
-                
+
                 <!-- 下方：显示被红方吃掉的棋子（黑方棋子） -->
                 <div id="captured-red" class="captured-pieces captured-bottom"></div>
             </div>
@@ -54,6 +54,8 @@
                     <button id="restart-btn">重新开始</button>
                     <button id="undo-btn">悔棋</button>
                     <button id="resign-btn">认输</button>
+                    <button onclick="window.location.href='index.html'"
+                        style="background-color: #8B4513; margin-top: 10px;">切换到象棋</button>
                 </div>
             </div>
         </div>
@@ -65,4 +67,3 @@
 </body>
 
 </html>
-
