@@ -115,7 +115,7 @@ body {
 
 /* 被吃掉的暗棋样式（保持背面朝上） */
 .captured-piece.hidden {
-    background: 
+    background:
         radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 50% 50%, rgba(160, 82, 45, 0.2) 0%, transparent 60%),
@@ -136,7 +136,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
+    background-image:
         repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(222, 184, 135, 0.15) 6px, rgba(222, 184, 135, 0.15) 8px),
         repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(222, 184, 135, 0.1) 6px, rgba(222, 184, 135, 0.1) 8px),
         radial-gradient(circle at center, rgba(222, 184, 135, 0.2) 0%, transparent 70%);
@@ -152,7 +152,7 @@ body {
     transform: translate(-50%, -50%);
     width: 70%;
     height: 70%;
-    background: 
+    background:
         radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.4) 1.5px, transparent 1.5px),
         radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.4) 1.5px, transparent 1.5px),
         radial-gradient(circle at 50% 20%, rgba(222, 184, 135, 0.3) 1px, transparent 1px),
@@ -284,7 +284,7 @@ body {
 
 /* 揭棋模式 - 暗棋样式 */
 .piece.hidden {
-    background: 
+    background:
         radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
         radial-gradient(circle at 50% 50%, rgba(160, 82, 45, 0.2) 0%, transparent 60%),
@@ -305,7 +305,7 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    background-image: 
+    background-image:
         repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(222, 184, 135, 0.15) 8px, rgba(222, 184, 135, 0.15) 10px),
         repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(222, 184, 135, 0.1) 8px, rgba(222, 184, 135, 0.1) 10px),
         radial-gradient(circle at center, rgba(222, 184, 135, 0.2) 0%, transparent 70%);
@@ -323,7 +323,7 @@ body {
     transform: translate(-50%, -50%);
     width: 70%;
     height: 70%;
-    background: 
+    background:
         radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.4) 2px, transparent 2px),
         radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.4) 2px, transparent 2px),
         radial-gradient(circle at 50% 20%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px),
@@ -482,6 +482,10 @@ select {
         --board-padding: 28px;
     }
 
+    .piece {
+        font-size: 28px;
+    }
+
     .controls {
         min-width: 200px;
     }
@@ -498,6 +502,10 @@ select {
         --piece-size: 42px;
         --cell-size: 48px;
         --board-padding: 24px;
+    }
+
+    .piece {
+        font-size: 24px;
     }
 
     .game-container {
@@ -589,9 +597,13 @@ select {
         --board-padding: 20px;
     }
 
+    .piece {
+        font-size: 20px;
+    }
+
     .game-container {
-        padding: 10px;
-        gap: 15px;
+        padding: 5px;
+        gap: 10px;
     }
 
     .chessboard {
@@ -621,7 +633,8 @@ select {
         font-size: 1.2rem;
     }
 
-    .turn-red, .turn-black {
+    .turn-red,
+    .turn-black {
         font-size: 1.1rem;
     }
 
@@ -637,14 +650,15 @@ select {
         --board-padding: 16px;
     }
 
-    body {
-        font-size: 14px;
+    .piece {
+        font-size: 18px;
+        /* 移除强制最小尺寸，避免棋子重叠 */
+        min-width: auto;
+        min-height: auto;
     }
 
-    /* 在超小屏幕上增大触摸区域 */
-    .piece {
-        min-width: 44px;
-        min-height: 44px;
+    body {
+        font-size: 14px;
     }
 }
 
@@ -656,8 +670,9 @@ select {
     }
 
     .piece {
-        min-width: 40px;
-        min-height: 40px;
+        font-size: 16px;
+        min-width: auto;
+        min-height: auto;
     }
 
     .chessboard {
@@ -698,7 +713,8 @@ select {
         font-size: 1.1rem;
     }
 
-    .turn-red, .turn-black {
+    .turn-red,
+    .turn-black {
         font-size: 1rem;
     }
 }
@@ -721,12 +737,10 @@ select {
         transform: none;
     }
 
-    /* 增大触摸目标 */
+    /* 移除强制增大触摸目标，避免视觉上过大 */
     .piece {
         cursor: default;
         -webkit-tap-highlight-color: transparent;
-        min-width: 44px;
-        min-height: 44px;
     }
 
     .buttons button {

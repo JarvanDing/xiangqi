@@ -51,7 +51,7 @@ class XiangqiGame {
 
     init() {
         console.log("Game Initializing...");
-        
+
         // 根据游戏模式初始化引擎
         if (this.gameMode === 'jieqi') {
             this.engine = new JieqiEngine();
@@ -59,7 +59,7 @@ class XiangqiGame {
             this.engine = new XiangqiEngine();
         }
         this.engine.setDifficulty(this.difficulty);
-        
+
         this.drawBoardGrid();
         this.bindEvents();
 
@@ -110,8 +110,9 @@ class XiangqiGame {
         svg += `<line x1="${p + 5 * this.cellSize}" y1="${p + 7 * this.cellSize}" x2="${p + 3 * this.cellSize}" y2="${p + 9 * this.cellSize}" stroke="#5d4037" stroke-width="1.5" />`;
 
         // 楚河汉界文字
-        svg += `<text x="${p + 2 * this.cellSize}" y="${p + 4.5 * this.cellSize}" dominant-baseline="middle" text-anchor="middle" font-family="KaiTi" font-size="32" fill="#5d4037" style="user-select: none;">楚 河</text>`;
-        svg += `<text x="${p + 6 * this.cellSize}" y="${p + 4.5 * this.cellSize}" dominant-baseline="middle" text-anchor="middle" font-family="KaiTi" font-size="32" fill="#5d4037" style="user-select: none;">汉 界</text>`;
+        const fontSize = this.cellSize * 0.5;
+        svg += `<text x="${p + 2 * this.cellSize}" y="${p + 4.5 * this.cellSize}" dominant-baseline="middle" text-anchor="middle" font-family="KaiTi" font-size="${fontSize}" fill="#5d4037" style="user-select: none;">楚 河</text>`;
+        svg += `<text x="${p + 6 * this.cellSize}" y="${p + 4.5 * this.cellSize}" dominant-baseline="middle" text-anchor="middle" font-family="KaiTi" font-size="${fontSize}" fill="#5d4037" style="user-select: none;">汉 界</text>`;
 
         // 炮/卒起始位置的标记（十字）
         const marks = [
@@ -151,7 +152,7 @@ class XiangqiGame {
             this.difficulty = parseInt(e.target.value);
             this.engine.setDifficulty(this.difficulty);
         });
-        
+
         // 游戏模式选择（如果存在）
         if (this.gameModeSelect) {
             this.gameModeSelect.addEventListener('change', (e) => {
@@ -537,7 +538,7 @@ class XiangqiGame {
             this.engine.capturedRed.forEach((pieceCode, index) => {
                 const el = document.createElement('div');
                 el.className = `captured-piece red`;
-                
+
                 // 如果是揭棋模式，检查是否是暗棋
                 if (this.gameMode === 'jieqi' && this.engine.capturedHiddenPieces) {
                     const hiddenKey = `red-${index}`;
@@ -551,7 +552,7 @@ class XiangqiGame {
                 } else {
                     el.textContent = this.getPieceChar(pieceCode);
                 }
-                
+
                 this.capturedRedEl.appendChild(el);
             });
         }
@@ -562,7 +563,7 @@ class XiangqiGame {
             this.engine.capturedBlack.forEach((pieceCode, index) => {
                 const el = document.createElement('div');
                 el.className = `captured-piece black`;
-                
+
                 // 如果是揭棋模式，检查是否是暗棋
                 if (this.gameMode === 'jieqi' && this.engine.capturedHiddenPieces) {
                     const hiddenKey = `black-${index}`;
@@ -576,7 +577,7 @@ class XiangqiGame {
                 } else {
                     el.textContent = this.getPieceChar(pieceCode);
                 }
-                
+
                 this.capturedBlackEl.appendChild(el);
             });
         }
@@ -650,14 +651,14 @@ class XiangqiGame {
                 capturedBlack: this.engine.capturedBlack || [],
                 timestamp: Date.now()
             };
-            
+
             // 如果是揭棋模式，保存暗棋信息
             if (this.gameMode === 'jieqi' && this.engine.hiddenPieces && this.engine.originalPositions) {
                 gameState.hiddenPieces = this.engine.hiddenPieces;
                 gameState.originalPositions = this.engine.originalPositions;
                 gameState.capturedHiddenPieces = this.engine.capturedHiddenPieces || [];
             }
-            
+
             // 使用不同的 key 区分传统象棋和揭棋
             const storageKey = this.gameMode === 'jieqi' ? 'jieqi_game_state' : 'xiangqi_game_state';
             localStorage.setItem(storageKey, JSON.stringify(gameState));
@@ -684,14 +685,14 @@ class XiangqiGame {
             this.engine.history = gameState.history || [];
             this.engine.capturedRed = gameState.capturedRed || [];
             this.engine.capturedBlack = gameState.capturedBlack || [];
-            
+
             // 如果是揭棋模式，恢复暗棋信息
             if (this.gameMode === 'jieqi' && this.engine.hiddenPieces !== undefined) {
                 this.engine.hiddenPieces = gameState.hiddenPieces || [];
                 this.engine.originalPositions = gameState.originalPositions || [];
                 this.engine.capturedHiddenPieces = gameState.capturedHiddenPieces || [];
             }
-            
+
             this.turn = gameState.turn;
             this.gameOver = gameState.gameOver || false;
             this.difficulty = gameState.difficulty || 2;
@@ -716,10 +717,41 @@ class XiangqiGame {
 
     // 移动端优化：更新棋盘尺寸
     updateBoardDimensions() {
-        // 获取CSS变量的值（根据屏幕尺寸动态调整）
-        const computedStyle = getComputedStyle(document.documentElement);
-        this.cellSize = parseInt(computedStyle.getPropertyValue('--cell-size')) || 64;
-        this.boardPadding = parseInt(computedStyle.getPropertyValue('--board-padding')) || 36;
+        const isMobile = window.innerWidth <= 600;
+
+        if (isMobile) {
+            // 动态计算以填满宽度
+            // 预留少量边距：容器 padding (5px * 2) + 棋盘边框 (6px * 2) ≈ 22px
+            // 为了安全起见，预留 20px 的总边距
+            const totalHorizontalMargin = 20;
+            const availableWidth = window.innerWidth - totalHorizontalMargin;
+
+            // 棋盘内部 padding 在手机上设小一点，比如 10px，以留更多空间给格子
+            const newBoardPadding = 10;
+
+            // 计算格子大小: (可用宽度 - 2 * boardPadding) / 8
+            let newCellSize = Math.floor((availableWidth - 2 * newBoardPadding) / 8);
+
+            // 更新 CSS 变量
+            document.documentElement.style.setProperty('--cell-size', `${newCellSize}px`);
+            document.documentElement.style.setProperty('--board-padding', `${newBoardPadding}px`);
+
+            // 棋子大小设为格子的 90%
+            const newPieceSize = Math.floor(newCellSize * 0.90);
+            document.documentElement.style.setProperty('--piece-size', `${newPieceSize}px`);
+
+            this.cellSize = newCellSize;
+            this.boardPadding = newBoardPadding;
+        } else {
+            // 桌面端恢复默认（清除内联样式）
+            document.documentElement.style.removeProperty('--cell-size');
+            document.documentElement.style.removeProperty('--board-padding');
+            document.documentElement.style.removeProperty('--piece-size');
+
+            const computedStyle = getComputedStyle(document.documentElement);
+            this.cellSize = parseInt(computedStyle.getPropertyValue('--cell-size')) || 64;
+            this.boardPadding = parseInt(computedStyle.getPropertyValue('--board-padding')) || 36;
+        }
 
         // 重新绘制棋盘网格以适应新尺寸
         if (this.board && this.gridOverlay) {
