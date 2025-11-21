@@ -722,8 +722,8 @@ class XiangqiGame {
         if (isMobile) {
             // 动态计算以填满宽度
             // 预留少量边距：容器 padding (5px * 2) + 棋盘边框 (6px * 2) ≈ 22px
-            // 为了安全起见，预留 20px 的总边距
-            const totalHorizontalMargin = 20;
+            // 为了安全起见，预留 25px 的总边距 (因为 box-sizing: content-box，边框在外部)
+            const totalHorizontalMargin = 25;
             const availableWidth = window.innerWidth - totalHorizontalMargin;
 
             // 棋盘内部 padding 在手机上设小一点，比如 10px，以留更多空间给格子
@@ -736,8 +736,8 @@ class XiangqiGame {
             document.documentElement.style.setProperty('--cell-size', `${newCellSize}px`);
             document.documentElement.style.setProperty('--board-padding', `${newBoardPadding}px`);
 
-            // 棋子大小设为格子的 90%
-            const newPieceSize = Math.floor(newCellSize * 0.90);
+            // 棋子大小设为格子的 96% (稍微调大)
+            const newPieceSize = Math.floor(newCellSize * 0.96);
             document.documentElement.style.setProperty('--piece-size', `${newPieceSize}px`);
 
             this.cellSize = newCellSize;

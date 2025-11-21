@@ -178,6 +178,7 @@ body {
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(0, 0, 0, 0.3);
     -webkit-user-select: none;
     user-select: none;
+    box-sizing: content-box;
 }
 
 .grid-overlay {
@@ -525,7 +526,7 @@ select {
         width: calc(var(--cell-size) * 8 + var(--board-padding) * 2);
         height: calc(var(--cell-size) * 9 + var(--board-padding) * 2);
         max-width: 100%;
-        box-sizing: border-box;
+        box-sizing: content-box;
     }
 
     .controls {
