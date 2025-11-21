@@ -31,7 +31,6 @@ body {
     -webkit-user-select: none;
     -webkit-tap-highlight-color: transparent;
     user-select: none;
-    overflow-x: hidden;
 }
 
 .game-container {
@@ -45,8 +44,6 @@ body {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    max-width: 100%;
-    box-sizing: border-box;
 }
 
 .header h1 {
@@ -585,15 +582,15 @@ select {
     }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 600px) {
     :root {
-        --piece-size: 40px;
-        --cell-size: 46px;
-        --board-padding: 22px;
+        --piece-size: 36px;
+        --cell-size: 42px;
+        --board-padding: 20px;
     }
 
     .game-container {
-        padding: 12px;
+        padding: 10px;
         gap: 15px;
     }
 
@@ -615,8 +612,8 @@ select {
     }
 
     .captured-piece {
-        width: 30px;
-        height: 30px;
+        width: 28px;
+        height: 28px;
         font-size: 16px;
     }
 
@@ -633,80 +630,14 @@ select {
     }
 }
 
-@media (max-width: 600px) {
-    :root {
-        --piece-size: 34px;
-        --cell-size: 40px;
-        --board-padding: 18px;
-    }
-
-    .game-container {
-        padding: 10px;
-        gap: 12px;
-    }
-
-    .chessboard {
-        border-width: 5px;
-    }
-
-    .controls {
-        padding: 12px;
-    }
-
-    .buttons {
-        grid-template-columns: 1fr;
-    }
-
-    .buttons button {
-        padding: 14px;
-        font-size: 16px;
-    }
-
-    .captured-piece {
-        width: 26px;
-        height: 26px;
-        font-size: 14px;
-    }
-
-    .status-panel h2 {
-        font-size: 1.1rem;
-    }
-
-    .turn-red, .turn-black {
-        font-size: 1rem;
-    }
-
-    #game-status {
-        font-size: 0.85rem;
-    }
-}
-
 @media (max-width: 480px) {
     :root {
-        --piece-size: 28px;
-        --cell-size: 34px;
-        --board-padding: 14px;
+        --piece-size: 32px;
+        --cell-size: 38px;
+        --board-padding: 16px;
     }
 
     body {
-        font-size: 14px;
-    }
-
-    .game-container {
-        padding: 8px;
-        gap: 10px;
-    }
-
-    .chessboard {
-        border-width: 4px;
-    }
-
-    .controls {
-        padding: 10px;
-    }
-
-    .buttons button {
-        padding: 12px;
         font-size: 14px;
     }
 
@@ -715,19 +646,13 @@ select {
         min-width: 44px;
         min-height: 44px;
     }
-
-    .captured-piece {
-        width: 22px;
-        height: 22px;
-        font-size: 12px;
-    }
 }
 
 @media (max-width: 360px) {
     :root {
-        --piece-size: 24px;
-        --cell-size: 30px;
-        --board-padding: 12px;
+        --piece-size: 28px;
+        --cell-size: 34px;
+        --board-padding: 14px;
     }
 
     .piece {
@@ -740,21 +665,40 @@ select {
     }
 
     .captured-piece {
-        width: 18px;
-        height: 18px;
-        font-size: 10px;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
     }
 
     .game-container {
-        padding: 6px;
-        gap: 8px;
-    }
-
-    .controls {
         padding: 8px;
     }
 
+    .chessboard {
+        border-width: 4px;
+        box-shadow: 0 5px 10px rgba(0, 0, 0, 0.4), inset 0 0 15px rgba(0, 0, 0, 0.3);
+    }
+
+    .controls {
+        padding: 12px;
+    }
+
+    .buttons button {
+        padding: 14px;
+        font-size: 16px;
+    }
+
+    .captured-piece {
+        width: 24px;
+        height: 24px;
+        font-size: 14px;
+    }
+
     .status-panel h2 {
+        font-size: 1.1rem;
+    }
+
+    .turn-red, .turn-black {
         font-size: 1rem;
     }
 }
@@ -808,80 +752,49 @@ select {
     }
 }
 
-/* 移动设备视口高度优化 */
-@media screen and (max-height: 800px) {
-    body {
-        padding: 5px 0;
-    }
-
-    .game-container {
-        padding: 8px;
-        gap: 12px;
-    }
-}
-
 /* 横屏手机优化 */
 @media screen and (max-height: 500px) and (orientation: landscape) {
     .game-container {
         flex-direction: row;
         padding: 5px;
         gap: 10px;
-        align-items: flex-start;
     }
 
     .main-content {
         flex-direction: row;
-        gap: 8px;
+        gap: 10px;
     }
 
     .controls {
-        min-width: 160px;
-        max-width: 180px;
-        padding: 8px;
-        font-size: 0.85rem;
+        min-width: 180px;
+        max-width: 200px;
+        padding: 10px;
     }
 
     .chessboard {
-        border-width: 3px;
+        transform: scale(0.7);
+        transform-origin: center;
+        margin: 0;
     }
 
     .buttons {
         display: flex;
         flex-direction: column;
-        gap: 6px;
     }
 
     .buttons button {
-        padding: 8px;
-        font-size: 12px;
-        margin-bottom: 0;
+        flex: 1;
+        margin-bottom: 5px;
     }
 
     .captured-pieces {
-        height: 28px;
-        min-height: 28px;
-        gap: 4px;
+        height: 30px;
+        min-height: 30px;
     }
 
     .captured-piece {
-        width: 18px;
-        height: 18px;
-        font-size: 10px;
-    }
-
-    .status-panel h2 {
-        font-size: 0.9rem;
-    }
-
-    .status-panel p {
-        font-size: 0.8rem;
-    }
-
-    .record {
-        padding: 6px;
-    }
-
-    .record p {
-        font-size: 0.75rem;
+        width: 20px;
+        height: 20px;
+        font-size: 12px;
     }
 }

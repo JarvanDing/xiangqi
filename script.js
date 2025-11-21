@@ -721,19 +721,6 @@ class XiangqiGame {
         this.cellSize = parseInt(computedStyle.getPropertyValue('--cell-size')) || 64;
         this.boardPadding = parseInt(computedStyle.getPropertyValue('--board-padding')) || 36;
 
-        // 在移动设备上进一步缩小棋盘以确保适应屏幕
-        const windowWidth = window.innerWidth;
-        const windowHeight = window.innerHeight;
-        const boardWidth = this.cellSize * 8 + this.boardPadding * 2;
-        const boardHeight = this.cellSize * 9 + this.boardPadding * 2;
-        
-        // 如果棋盘宽度超过窗口宽度的 95%，进一步缩小
-        if (boardWidth > windowWidth * 0.95) {
-            const scale = (windowWidth * 0.9) / boardWidth;
-            this.cellSize = Math.floor(this.cellSize * scale);
-            this.boardPadding = Math.floor(this.boardPadding * scale);
-        }
-
         // 重新绘制棋盘网格以适应新尺寸
         if (this.board && this.gridOverlay) {
             this.drawBoardGrid();
