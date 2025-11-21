@@ -12,7 +12,7 @@ class JieqiEngine extends XiangqiEngine {
     reset() {
         // 调用父类的reset来初始化基础棋盘和清空被吃掉的棋子
         super.reset();
-        
+
         // 清空暗棋记录
         this.hiddenPieces = [];
         this.originalPositions = [];
@@ -134,12 +134,12 @@ class JieqiEngine extends XiangqiEngine {
         // 从hiddenPieces中移除（棋子翻开了）
         this.hiddenPieces = this.hiddenPieces.filter(p => !(p.row === row && p.col === col));
     }
-    
+
     // 重写undo以恢复originalPositions和被吃掉的暗棋记录
     undo() {
         const move = super.undo();
         if (!move) return null;
-        
+
         // 如果撤销的是吃子操作，需要从capturedHiddenPieces中移除对应的记录
         if (move.captured && move.captured !== '.' && this.capturedHiddenPieces && this.capturedHiddenPieces.length > 0) {
             const isRed = move.captured === move.captured.toUpperCase();
@@ -149,7 +149,7 @@ class JieqiEngine extends XiangqiEngine {
             // 我们需要移除最后一个匹配该数组的记录
             const targetIndex = array.length;
             const hiddenKey = `${arrayName}-${targetIndex}`;
-            
+
             // 查找并移除最后一个匹配的记录（从后往前找，因为最后吃掉的应该最后撤销）
             let found = false;
             for (let i = this.capturedHiddenPieces.length - 1; i >= 0; i--) {
@@ -159,7 +159,7 @@ class JieqiEngine extends XiangqiEngine {
                     break;
                 }
             }
-            
+
             // 如果没找到精确匹配，可能是索引偏移问题，移除最后一个匹配该数组的记录
             if (!found) {
                 for (let i = this.capturedHiddenPieces.length - 1; i >= 0; i--) {
@@ -170,12 +170,12 @@ class JieqiEngine extends XiangqiEngine {
                 }
             }
         }
-        
+
         // 恢复originalPositions
         // 需要从历史记录中恢复，但这里简化处理：重新计算
         // 实际上，应该在history中保存originalPositions的变化
         // 为了简化，这里不做详细恢复，因为undo后通常会重新渲染
-        
+
         return move;
     }
 
@@ -185,28 +185,28 @@ class JieqiEngine extends XiangqiEngine {
         // 如果棋子已经移动过，需要从历史记录中查找它的原始位置
         const pos = this.originalPositions.find(p => p.row === row && p.col === col);
         if (pos) return pos.type;
-        
+
         // 如果当前位置没有找到，可能是棋子已经移动过了
         // 需要从历史记录中查找这个棋子最初的位置类型
         // 简化处理：如果找不到，返回null（这种情况不应该发生）
         return null;
     }
-    
+
     // 重写movePiece以更新originalPositions和处理暗棋翻开
     movePiece(fromRow, fromCol, toRow, toCol) {
         const piece = this.board[fromRow][fromCol];
         const captured = this.board[toRow][toCol];
         const wasHidden = this.isHidden(fromRow, fromCol);
         const capturedWasHidden = captured && captured !== '.' ? this.isHidden(toRow, toCol) : false;
-        
+
         // 如果移动的是暗棋，先从旧位置移除（在移动之前）
         if (wasHidden) {
             this.hiddenPieces = this.hiddenPieces.filter(p => !(p.row === fromRow && p.col === fromCol));
         }
-        
+
         // 调用父类的movePiece（会更新棋盘和captured数组）
         super.movePiece(fromRow, fromCol, toRow, toCol);
-        
+
         // 如果吃掉了暗棋，记录为暗棋（保持背面朝上）
         if (captured && captured !== '.' && capturedWasHidden) {
             if (!this.capturedHiddenPieces) {
@@ -220,7 +220,7 @@ class JieqiEngine extends XiangqiEngine {
             // 使用字符串标识：'red-0', 'black-1' 等
             this.capturedHiddenPieces.push(`${arrayName}-${index}`);
         }
-        
+
         // 更新originalPositions：将原始位置信息移动到新位置
         const fromPos = this.originalPositions.find(p => p.row === fromRow && p.col === fromCol);
         if (fromPos) {
@@ -229,7 +229,7 @@ class JieqiEngine extends XiangqiEngine {
             // 在新位置添加记录（即使已经翻开，也保留原始位置信息，以防需要）
             this.originalPositions.push({ row: toRow, col: toCol, type: fromPos.type });
         }
-        
+
         // 如果吃掉了棋子，移除被吃掉棋子的originalPositions和hiddenPieces记录
         if (captured && captured !== '.') {
             // 移除被吃掉棋子的originalPositions（注意：此时fromPos可能已经更新，需要排除它）
@@ -253,7 +253,7 @@ class JieqiEngine extends XiangqiEngine {
         if (!piece) return false;
 
         const isHiddenPiece = this.isHidden(fromRow, fromCol);
-        
+
         // 判断颜色：暗棋基于位置，明棋可以看到真实类型
         let isRed;
         if (isHiddenPiece) {
@@ -273,7 +273,7 @@ class JieqiEngine extends XiangqiEngine {
         } else {
             geometricallyValid = this.isGeometricallyValidJieqi(fromRow, fromCol, toRow, toCol);
         }
-        
+
         if (!geometricallyValid) return false;
 
         // 2. 模拟移动以检查"飞将"和"自杀"
@@ -397,7 +397,7 @@ class JieqiEngine extends XiangqiEngine {
                 const p = this.board[r][c];
                 if (p !== '.') {
                     const isHidden = this.isHidden(r, c);
-                    
+
                     if (isHidden) {
                         // 对于暗棋，AI不应该知道真实类型
                         // 1. 基于位置判断颜色（红方在下方 row >= 5，黑方在上方 row < 5）
@@ -408,7 +408,7 @@ class JieqiEngine extends XiangqiEngine {
                             const isRed = this.isRedSide(r);
                             const expectedValue = this.getExpectedValueForPosition(r, c, originalType);
                             const pstVal = this.getPSTForType(originalType, r, c, isRed);
-                            
+
                             if (isRed) {
                                 score += (expectedValue + pstVal);
                             } else {
@@ -436,7 +436,7 @@ class JieqiEngine extends XiangqiEngine {
     getExpectedValueForPosition(row, col, originalType) {
         // 判断是红方还是黑方
         const isRed = this.isRedSide(row);
-        
+
         // 根据原始位置类型，计算该位置可能的棋子类型的平均价值
         return this.getExpectedValueForOriginalType(originalType, isRed);
     }
@@ -444,7 +444,7 @@ class JieqiEngine extends XiangqiEngine {
     // 根据原始位置类型计算期望价值
     getExpectedValueForOriginalType(originalType, isRed) {
         const type = originalType.toLowerCase();
-        
+
         // 根据原始位置类型，计算该位置可能的所有棋子类型的平均价值
         // 在揭棋中，每个位置打乱后可能放置不同的棋子
         if (type === 'r') {
@@ -469,8 +469,8 @@ class JieqiEngine extends XiangqiEngine {
                 this.getPieceValue(isRed ? 'P' : 'p')  // 兵
             ];
             // 车2个、马2个、象2个、士2个、炮2个、兵5个，共15个
-            return (values[0] * 2 + values[1] * 2 + values[2] * 2 + 
-                    values[3] * 2 + values[4] * 2 + values[5] * 5) / 15;
+            return (values[0] * 2 + values[1] * 2 + values[2] * 2 +
+                values[3] * 2 + values[4] * 2 + values[5] * 5) / 15;
         } else if (type === 'p') {
             // 兵位置：可能是任何15个棋子中的任意一个
             // 与炮位置相同
@@ -482,10 +482,10 @@ class JieqiEngine extends XiangqiEngine {
                 this.getPieceValue(isRed ? 'C' : 'c'),
                 this.getPieceValue(isRed ? 'P' : 'p')
             ];
-            return (values[0] * 2 + values[1] * 2 + values[2] * 2 + 
-                    values[3] * 2 + values[4] * 2 + values[5] * 5) / 15;
+            return (values[0] * 2 + values[1] * 2 + values[2] * 2 +
+                values[3] * 2 + values[4] * 2 + values[5] * 5) / 15;
         }
-        
+
         // 默认使用原始类型的价值
         const baseChar = isRed ? type.toUpperCase() : type;
         return this.getPieceValue(baseChar);
@@ -512,7 +512,7 @@ class JieqiEngine extends XiangqiEngine {
                         // 明棋：可以看到真实类型
                         isPieceRed = p === p.toUpperCase();
                     }
-                    
+
                     if (isPieceRed === isRed) {
                         for (let tr = 0; tr < 10; tr++) {
                             for (let tc = 0; tc < 9; tc++) {
@@ -566,7 +566,7 @@ class JieqiEngine extends XiangqiEngine {
                         // 明棋：可以看到真实类型
                         isPieceRed = p === p.toUpperCase();
                     }
-                    
+
                     if (isPieceRed !== isRed) {
                         // 敌方棋子，检查是否可以攻击老将
                         // 对于暗棋，需要基于原始位置类型判断
@@ -586,5 +586,290 @@ class JieqiEngine extends XiangqiEngine {
             }
         }
         return false;
+    }
+    // 辅助方法：在搜索中更新状态
+    updateStateForMove(fromRow, fromCol, toRow, toCol) {
+        const state = {
+            movedHiddenIdx: -1,
+            movedOriginalIdx: -1,
+            capturedHiddenIdx: -1,
+            capturedOriginalIdx: -1,
+            oldHiddenPos: null,
+            oldOriginalPos: null,
+            capturedHiddenPos: null,
+            capturedOriginalPos: null
+        };
+
+        // 1. 处理被吃掉的棋子 (Target)
+        // 不使用 splice，而是修改坐标为 -1，保持数组索引稳定
+        const targetHiddenIdx = this.hiddenPieces.findIndex(p => p.row === toRow && p.col === toCol);
+        if (targetHiddenIdx !== -1) {
+            state.capturedHiddenIdx = targetHiddenIdx;
+            state.capturedHiddenPos = { ...this.hiddenPieces[targetHiddenIdx] };
+            this.hiddenPieces[targetHiddenIdx].row = -1;
+            this.hiddenPieces[targetHiddenIdx].col = -1;
+        }
+
+        const targetOriginalIdx = this.originalPositions.findIndex(p => p.row === toRow && p.col === toCol);
+        if (targetOriginalIdx !== -1) {
+            state.capturedOriginalIdx = targetOriginalIdx;
+            state.capturedOriginalPos = { ...this.originalPositions[targetOriginalIdx] };
+            this.originalPositions[targetOriginalIdx].row = -1;
+            this.originalPositions[targetOriginalIdx].col = -1;
+        }
+
+        // 2. 处理移动的棋子 (Source)
+        state.movedHiddenIdx = this.hiddenPieces.findIndex(p => p.row === fromRow && p.col === fromCol);
+        if (state.movedHiddenIdx !== -1) {
+            state.oldHiddenPos = { ...this.hiddenPieces[state.movedHiddenIdx] };
+            this.hiddenPieces[state.movedHiddenIdx].row = toRow;
+            this.hiddenPieces[state.movedHiddenIdx].col = toCol;
+        }
+
+        state.movedOriginalIdx = this.originalPositions.findIndex(p => p.row === fromRow && p.col === fromCol);
+        if (state.movedOriginalIdx !== -1) {
+            state.oldOriginalPos = { ...this.originalPositions[state.movedOriginalIdx] };
+            this.originalPositions[state.movedOriginalIdx].row = toRow;
+            this.originalPositions[state.movedOriginalIdx].col = toCol;
+        }
+
+        return state;
+    }
+
+    // 辅助方法：恢复状态
+    restoreStateAfterMove(fromRow, fromCol, toRow, toCol, state) {
+        // 1. 恢复移动的棋子
+        if (state.movedOriginalIdx !== -1) {
+            this.originalPositions[state.movedOriginalIdx].row = state.oldOriginalPos.row;
+            this.originalPositions[state.movedOriginalIdx].col = state.oldOriginalPos.col;
+        }
+
+        if (state.movedHiddenIdx !== -1) {
+            this.hiddenPieces[state.movedHiddenIdx].row = state.oldHiddenPos.row;
+            this.hiddenPieces[state.movedHiddenIdx].col = state.oldHiddenPos.col;
+        }
+
+        // 2. 恢复被吃掉的棋子
+        if (state.capturedOriginalIdx !== -1) {
+            this.originalPositions[state.capturedOriginalIdx].row = state.capturedOriginalPos.row;
+            this.originalPositions[state.capturedOriginalIdx].col = state.capturedOriginalPos.col;
+        }
+        if (state.capturedHiddenIdx !== -1) {
+            this.hiddenPieces[state.capturedHiddenIdx].row = state.capturedHiddenPos.row;
+            this.hiddenPieces[state.capturedHiddenIdx].col = state.capturedHiddenPos.col;
+        }
+    }
+
+    // 重写 orderMoves：使用期望价值进行排序
+    orderMoves(moves) {
+        moves.sort((a, b) => {
+            const pieceA = this.board[a.fromRow][a.fromCol];
+            const targetA = this.board[a.toRow][a.toCol];
+
+            let valA = 0;
+            if (targetA !== '.') {
+                let targetVal = 0;
+                if (this.isHidden(a.toRow, a.toCol)) {
+                    const rule = this.getHiddenPieceRule(a.toRow, a.toCol);
+                    targetVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(a.toRow)) : 0;
+                } else {
+                    targetVal = this.getPieceValue(targetA);
+                }
+
+                let pieceVal = 0;
+                if (this.isHidden(a.fromRow, a.fromCol)) {
+                    const rule = this.getHiddenPieceRule(a.fromRow, a.fromCol);
+                    pieceVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(a.fromRow)) : 0;
+                } else {
+                    pieceVal = this.getPieceValue(pieceA);
+                }
+
+                valA = 10 * targetVal - pieceVal;
+            }
+
+            const pieceB = this.board[b.fromRow][b.fromCol];
+            const targetB = this.board[b.toRow][b.toCol];
+
+            let valB = 0;
+            if (targetB !== '.') {
+                let targetVal = 0;
+                if (this.isHidden(b.toRow, b.toCol)) {
+                    const rule = this.getHiddenPieceRule(b.toRow, b.toCol);
+                    targetVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(b.toRow)) : 0;
+                } else {
+                    targetVal = this.getPieceValue(targetB);
+                }
+
+                let pieceVal = 0;
+                if (this.isHidden(b.fromRow, b.fromCol)) {
+                    const rule = this.getHiddenPieceRule(b.fromRow, b.fromCol);
+                    pieceVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(b.fromRow)) : 0;
+                } else {
+                    pieceVal = this.getPieceValue(pieceB);
+                }
+
+                valB = 10 * targetVal - pieceVal;
+            }
+
+            return valB - valA;
+        });
+    }
+
+    // 重写 quiescenceSearch
+    quiescenceSearch(alpha, beta, isMaximizing) {
+        const evalScore = this.evaluate();
+
+        if (isMaximizing) {
+            if (evalScore >= beta) return beta;
+            if (evalScore > alpha) alpha = evalScore;
+        } else {
+            if (evalScore <= alpha) return alpha;
+            if (evalScore < beta) beta = evalScore;
+        }
+
+        const moves = this.getAllLegalMoves(isMaximizing).filter(move => {
+            return this.board[move.toRow][move.toCol] !== '.';
+        });
+
+        this.orderMoves(moves);
+
+        for (const move of moves) {
+            const originalTarget = this.board[move.toRow][move.toCol];
+            const movingPiece = this.board[move.fromRow][move.fromCol];
+
+            // 更新状态（暗棋跟随移动）
+            const state = this.updateStateForMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+
+            this.board[move.toRow][move.toCol] = movingPiece;
+            this.board[move.fromRow][move.fromCol] = '.';
+
+            const score = this.quiescenceSearch(alpha, beta, !isMaximizing);
+
+            this.board[move.fromRow][move.fromCol] = movingPiece;
+            this.board[move.toRow][move.toCol] = originalTarget;
+
+            // 恢复状态
+            this.restoreStateAfterMove(move.fromRow, move.fromCol, move.toRow, move.toCol, state);
+
+            if (isMaximizing) {
+                if (score >= beta) return beta;
+                if (score > alpha) alpha = score;
+            } else {
+                if (score <= alpha) return alpha;
+                if (score < beta) beta = score;
+            }
+        }
+        return isMaximizing ? alpha : beta;
+    }
+
+    // 重写 minimax
+    minimax(depth, isMaximizing, alpha, beta) {
+        if (depth === 0) {
+            return this.quiescenceSearch(alpha, beta, isMaximizing);
+        }
+
+        const moves = this.getAllLegalMoves(isMaximizing);
+
+        if (moves.length === 0) {
+            return isMaximizing ? -200000 + (10 - depth) : 200000 - (10 - depth);
+        }
+
+        this.orderMoves(moves);
+
+        if (isMaximizing) {
+            let maxEval = -Infinity;
+            for (const move of moves) {
+                const originalTarget = this.board[move.toRow][move.toCol];
+                const movingPiece = this.board[move.fromRow][move.fromCol];
+
+                const state = this.updateStateForMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+
+                this.board[move.toRow][move.toCol] = movingPiece;
+                this.board[move.fromRow][move.fromCol] = '.';
+
+                const evalScore = this.minimax(depth - 1, false, alpha, beta);
+
+                this.board[move.fromRow][move.fromCol] = movingPiece;
+                this.board[move.toRow][move.toCol] = originalTarget;
+
+                this.restoreStateAfterMove(move.fromRow, move.fromCol, move.toRow, move.toCol, state);
+
+                maxEval = Math.max(maxEval, evalScore);
+                alpha = Math.max(alpha, evalScore);
+                if (beta <= alpha) break;
+            }
+            return maxEval;
+        } else {
+            let minEval = Infinity;
+            for (const move of moves) {
+                const originalTarget = this.board[move.toRow][move.toCol];
+                const movingPiece = this.board[move.fromRow][move.fromCol];
+
+                const state = this.updateStateForMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+
+                this.board[move.toRow][move.toCol] = movingPiece;
+                this.board[move.fromRow][move.fromCol] = '.';
+
+                const evalScore = this.minimax(depth - 1, true, alpha, beta);
+
+                this.board[move.fromRow][move.fromCol] = movingPiece;
+                this.board[move.toRow][move.toCol] = originalTarget;
+
+                this.restoreStateAfterMove(move.fromRow, move.fromCol, move.toRow, move.toCol, state);
+
+                minEval = Math.min(minEval, evalScore);
+                beta = Math.min(beta, evalScore);
+                if (beta <= alpha) break;
+            }
+            return minEval;
+        }
+    }
+
+    // 重写 getBestMove
+    getBestMove() {
+        // 备份状态：防止搜索过程污染真实游戏状态
+        const backupHidden = JSON.parse(JSON.stringify(this.hiddenPieces));
+        const backupOriginal = JSON.parse(JSON.stringify(this.originalPositions));
+
+        try {
+            const depth = this.difficulty + 1;
+            const isRed = false; // AI 是黑方
+            const moves = this.getAllLegalMoves(isRed);
+
+            if (moves.length === 0) return null;
+
+            this.orderMoves(moves);
+
+            let bestMove = null;
+            let bestValue = Infinity;
+
+            for (const move of moves) {
+                const originalTarget = this.board[move.toRow][move.toCol];
+                const movingPiece = this.board[move.fromRow][move.fromCol];
+
+                const state = this.updateStateForMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+
+                this.board[move.toRow][move.toCol] = movingPiece;
+                this.board[move.fromRow][move.fromCol] = '.';
+
+                const boardValue = this.minimax(depth - 1, true, -Infinity, Infinity);
+
+                this.board[move.fromRow][move.fromCol] = movingPiece;
+                this.board[move.toRow][move.toCol] = originalTarget;
+
+                this.restoreStateAfterMove(move.fromRow, move.fromCol, move.toRow, move.toCol, state);
+
+                if (boardValue < bestValue) {
+                    bestValue = boardValue;
+                    bestMove = move;
+                }
+            }
+
+            return bestMove;
+        } finally {
+            // 无论如何，恢复状态
+            this.hiddenPieces = backupHidden;
+            this.originalPositions = backupOriginal;
+        }
     }
 }
