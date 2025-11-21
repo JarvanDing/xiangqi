@@ -26,6 +26,12 @@ body {
     align-items: center;
     min-height: 100vh;
     color: #eee;
+    /* 防止文本选择和触摸行为 */
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+    overflow-x: hidden;
 }
 
 .game-container {
@@ -39,6 +45,8 @@ body {
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 .header h1 {
@@ -469,19 +477,411 @@ select {
     background-color: #555;
 }
 
+/* 响应式设计 */
+@media (max-width: 1200px) {
+    :root {
+        --piece-size: 48px;
+        --cell-size: 54px;
+        --board-padding: 28px;
+    }
+
+    .controls {
+        min-width: 200px;
+    }
+
+    .captured-piece {
+        width: 35px;
+        height: 35px;
+        font-size: 20px;
+    }
+}
+
 @media (max-width: 850px) {
+    :root {
+        --piece-size: 42px;
+        --cell-size: 48px;
+        --board-padding: 24px;
+    }
+
     .game-container {
         flex-direction: column;
-        padding: 10px;
+        padding: 15px;
+        gap: 20px;
     }
 
     .main-content {
         flex-direction: column;
+        gap: 20px;
     }
 
     .chessboard {
-        transform-origin: top center;
-        transform: scale(0.8);
-        margin-bottom: -100px;
+        transform: none;
+        margin-bottom: 0;
+        width: calc(var(--cell-size) * 8 + var(--board-padding) * 2);
+        height: calc(var(--cell-size) * 9 + var(--board-padding) * 2);
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .controls {
+        min-width: unset;
+        width: 100%;
+        max-width: 400px;
+        padding: 20px;
+        margin: 0 auto;
+    }
+
+    .buttons {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .buttons button {
+        width: 100%;
+        margin-bottom: 0;
+        font-size: 16px;
+        padding: 14px;
+        -webkit-tap-highlight-color: rgba(255, 255, 255, 0.1);
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .captured-pieces {
+        width: 100%;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px;
+    }
+
+    .captured-piece {
+        width: 32px;
+        height: 32px;
+        font-size: 18px;
+        flex-shrink: 0;
+    }
+
+    .status-panel h2 {
+        font-size: 1.3rem;
+    }
+
+    #game-status {
+        font-size: 1rem;
+    }
+
+    .record p {
+        font-size: 0.9rem;
+    }
+
+    .settings label {
+        font-size: 0.9rem;
+        margin-bottom: 6px;
+    }
+
+    select {
+        font-size: 0.9rem;
+        padding: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --piece-size: 40px;
+        --cell-size: 46px;
+        --board-padding: 22px;
+    }
+
+    .game-container {
+        padding: 12px;
+        gap: 15px;
+    }
+
+    .chessboard {
+        border-width: 6px;
+    }
+
+    .controls {
+        padding: 15px;
+    }
+
+    .buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .buttons button {
+        padding: 16px;
+        font-size: 18px;
+    }
+
+    .captured-piece {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .status-panel h2 {
+        font-size: 1.2rem;
+    }
+
+    .turn-red, .turn-black {
+        font-size: 1.1rem;
+    }
+
+    #game-status {
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 600px) {
+    :root {
+        --piece-size: 34px;
+        --cell-size: 40px;
+        --board-padding: 18px;
+    }
+
+    .game-container {
+        padding: 10px;
+        gap: 12px;
+    }
+
+    .chessboard {
+        border-width: 5px;
+    }
+
+    .controls {
+        padding: 12px;
+    }
+
+    .buttons {
+        grid-template-columns: 1fr;
+    }
+
+    .buttons button {
+        padding: 14px;
+        font-size: 16px;
+    }
+
+    .captured-piece {
+        width: 26px;
+        height: 26px;
+        font-size: 14px;
+    }
+
+    .status-panel h2 {
+        font-size: 1.1rem;
+    }
+
+    .turn-red, .turn-black {
+        font-size: 1rem;
+    }
+
+    #game-status {
+        font-size: 0.85rem;
+    }
+}
+
+@media (max-width: 480px) {
+    :root {
+        --piece-size: 28px;
+        --cell-size: 34px;
+        --board-padding: 14px;
+    }
+
+    body {
+        font-size: 14px;
+    }
+
+    .game-container {
+        padding: 8px;
+        gap: 10px;
+    }
+
+    .chessboard {
+        border-width: 4px;
+    }
+
+    .controls {
+        padding: 10px;
+    }
+
+    .buttons button {
+        padding: 12px;
+        font-size: 14px;
+    }
+
+    /* 在超小屏幕上增大触摸区域 */
+    .piece {
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .captured-piece {
+        width: 22px;
+        height: 22px;
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 360px) {
+    :root {
+        --piece-size: 24px;
+        --cell-size: 30px;
+        --board-padding: 12px;
+    }
+
+    .piece {
+        min-width: 40px;
+        min-height: 40px;
+    }
+
+    .chessboard {
+        border-width: 3px;
+    }
+
+    .captured-piece {
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+
+    .game-container {
+        padding: 6px;
+        gap: 8px;
+    }
+
+    .controls {
+        padding: 8px;
+    }
+
+    .status-panel h2 {
+        font-size: 1rem;
+    }
+}
+
+/* 触摸设备优化 */
+@media (hover: none) and (pointer: coarse) {
+    .piece {
+        cursor: default;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    .buttons button {
+        cursor: default;
+        -webkit-tap-highlight-color: rgba(255, 215, 0, 0.3);
+        transition: background-color 0.1s;
+    }
+
+    .buttons button:active {
+        background-color: #8b4513;
+        transform: none;
+    }
+
+    /* 增大触摸目标 */
+    .piece {
+        cursor: default;
+        -webkit-tap-highlight-color: transparent;
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    .buttons button {
+        min-height: 48px;
+        cursor: default;
+        -webkit-tap-highlight-color: rgba(255, 215, 0, 0.3);
+    }
+
+    /* 防止页面弹性滚动 */
+    .game-container {
+        overscroll-behavior: none;
+    }
+
+    /* 优化选择框触摸体验 */
+    select {
+        -webkit-appearance: none;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.5rem center;
+        background-repeat: no-repeat;
+        background-size: 1.5em 1.5em;
+        padding-right: 2.5rem;
+    }
+}
+
+/* 移动设备视口高度优化 */
+@media screen and (max-height: 800px) {
+    body {
+        padding: 5px 0;
+    }
+
+    .game-container {
+        padding: 8px;
+        gap: 12px;
+    }
+}
+
+/* 横屏手机优化 */
+@media screen and (max-height: 500px) and (orientation: landscape) {
+    .game-container {
+        flex-direction: row;
+        padding: 5px;
+        gap: 10px;
+        align-items: flex-start;
+    }
+
+    .main-content {
+        flex-direction: row;
+        gap: 8px;
+    }
+
+    .controls {
+        min-width: 160px;
+        max-width: 180px;
+        padding: 8px;
+        font-size: 0.85rem;
+    }
+
+    .chessboard {
+        border-width: 3px;
+    }
+
+    .buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+    }
+
+    .buttons button {
+        padding: 8px;
+        font-size: 12px;
+        margin-bottom: 0;
+    }
+
+    .captured-pieces {
+        height: 28px;
+        min-height: 28px;
+        gap: 4px;
+    }
+
+    .captured-piece {
+        width: 18px;
+        height: 18px;
+        font-size: 10px;
+    }
+
+    .status-panel h2 {
+        font-size: 0.9rem;
+    }
+
+    .status-panel p {
+        font-size: 0.8rem;
+    }
+
+    .record {
+        padding: 6px;
+    }
+
+    .record p {
+        font-size: 0.75rem;
     }
 }

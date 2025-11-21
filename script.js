@@ -40,6 +40,13 @@ class XiangqiGame {
         this.winCountEl = document.getElementById('win-count');
         this.lossCountEl = document.getElementById('loss-count');
         this.loadRecord();
+
+        // 移动端优化
+        this.updateBoardDimensions();
+        window.addEventListener('resize', () => this.updateBoardDimensions());
+        window.addEventListener('orientationchange', () => {
+            setTimeout(() => this.updateBoardDimensions(), 100);
+        });
     }
 
     init() {
@@ -152,8 +159,31 @@ class XiangqiGame {
             });
         }
 
-        // 棋盘点击处理
+        // 棋盘点击和触摸处理
         this.piecesLayer.addEventListener('click', (e) => this.handleBoardClick(e));
+
+        // 添加触摸事件支持
+        this.piecesLayer.addEventListener('touchstart', (e) => {
+            e.preventDefault(); // 防止默认的滚动行为
+            if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                // 创建一个模拟的鼠标事件
+                const mouseEvent = new MouseEvent('click', {
+                    clientX: touch.clientX,
+                    clientY: touch.clientY,
+                    bubbles: true,
+                    cancelable: true
+                });
+                e.target.dispatchEvent(mouseEvent);
+            }
+        }, { passive: false });
+
+        // 防止双指缩放
+        this.piecesLayer.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
+        }, { passive: false });
     }
 
     switchGameMode(mode) {
@@ -681,6 +711,37 @@ class XiangqiGame {
         } catch (e) {
             console.error('加载游戏状态失败:', e);
             return false;
+        }
+    }
+
+    // 移动端优化：更新棋盘尺寸
+    updateBoardDimensions() {
+        // 获取CSS变量的值（根据屏幕尺寸动态调整）
+        const computedStyle = getComputedStyle(document.documentElement);
+        this.cellSize = parseInt(computedStyle.getPropertyValue('--cell-size')) || 64;
+        this.boardPadding = parseInt(computedStyle.getPropertyValue('--board-padding')) || 36;
+
+        // 在移动设备上进一步缩小棋盘以确保适应屏幕
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+        const boardWidth = this.cellSize * 8 + this.boardPadding * 2;
+        const boardHeight = this.cellSize * 9 + this.boardPadding * 2;
+        
+        // 如果棋盘宽度超过窗口宽度的 95%，进一步缩小
+        if (boardWidth > windowWidth * 0.95) {
+            const scale = (windowWidth * 0.9) / boardWidth;
+            this.cellSize = Math.floor(this.cellSize * scale);
+            this.boardPadding = Math.floor(this.boardPadding * scale);
+        }
+
+        // 重新绘制棋盘网格以适应新尺寸
+        if (this.board && this.gridOverlay) {
+            this.drawBoardGrid();
+        }
+
+        // 重新渲染所有棋子以适应新尺寸
+        if (this.piecesLayer) {
+            this.renderBoard();
         }
     }
 }
