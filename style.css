@@ -1,0 +1,487 @@
+:root {
+    --board-bg: #DEB887;
+    --board-border: #8B4513;
+    --line-color: #5d4037;
+    --piece-size: 56px;
+    --cell-size: 64px;
+    --board-padding: 36px;
+    --red-color: #d00;
+    --black-color: #111;
+    --selected-shadow: 0 0 15px rgba(255, 215, 0, 0.8);
+    --last-move-shadow: 0 0 10px rgba(0, 255, 0, 0.6);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: "KaiTi", "STKaiti", "楷体", serif;
+    background-color: #333;
+    background-image: radial-gradient(#444, #222);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    color: #eee;
+}
+
+.game-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 40px;
+    padding: 30px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 16px;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+.header h1 {
+    display: none;
+}
+
+.main-content {
+    display: flex;
+    gap: 40px;
+    align-items: center;
+}
+
+.board-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.captured-pieces {
+    width: calc(var(--cell-size) * 8 + var(--board-padding) * 2);
+    min-height: 50px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    margin: 10px 0;
+}
+
+.captured-top {
+    margin-bottom: 15px;
+}
+
+.captured-bottom {
+    margin-top: 15px;
+}
+
+.captured-piece {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #f0d9b5;
+    box-shadow:
+        inset 0 -2px 3px rgba(0, 0, 0, 0.3),
+        inset 0 2px 3px rgba(255, 255, 255, 0.8),
+        1px 1px 3px rgba(0, 0, 0, 0.4);
+    border: 2px solid #b8860b;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 24px;
+    font-weight: bold;
+    background-image: linear-gradient(135deg, #fff8e7 0%, #f0d9b5 100%);
+    opacity: 0.7;
+}
+
+.captured-piece.red {
+    color: var(--red-color);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.captured-piece.black {
+    color: var(--black-color);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+/* 被吃掉的暗棋样式（保持背面朝上） */
+.captured-piece.hidden {
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(160, 82, 45, 0.2) 0%, transparent 60%),
+        linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    color: transparent !important;
+    text-shadow: none !important;
+    font-size: 0 !important;
+    text-indent: -9999px;
+    position: relative;
+    overflow: hidden;
+}
+
+.captured-piece.hidden::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(222, 184, 135, 0.15) 6px, rgba(222, 184, 135, 0.15) 8px),
+        repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(222, 184, 135, 0.1) 6px, rgba(222, 184, 135, 0.1) 8px),
+        radial-gradient(circle at center, rgba(222, 184, 135, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+    z-index: 1;
+}
+
+.captured-piece.hidden::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 70%;
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.4) 1.5px, transparent 1.5px),
+        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.4) 1.5px, transparent 1.5px),
+        radial-gradient(circle at 50% 20%, rgba(222, 184, 135, 0.3) 1px, transparent 1px),
+        radial-gradient(circle at 20% 50%, rgba(222, 184, 135, 0.3) 1px, transparent 1px),
+        radial-gradient(circle at 80% 50%, rgba(222, 184, 135, 0.3) 1px, transparent 1px),
+        radial-gradient(circle at 50% 80%, rgba(222, 184, 135, 0.3) 1px, transparent 1px);
+    background-size: 25% 25%, 25% 25%, 20% 20%, 20% 20%, 20% 20%, 20% 20%;
+    background-position: 0% 0%, 100% 100%, 50% 0%, 0% 50%, 100% 50%, 50% 100%;
+    border-radius: 50%;
+    z-index: 2;
+}
+
+.chessboard {
+    width: calc(var(--cell-size) * 8 + var(--board-padding) * 2);
+    height: calc(var(--cell-size) * 9 + var(--board-padding) * 2);
+    background-color: var(--board-bg);
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.1) 0%, transparent 20%, rgba(0, 0, 0, 0.1) 50%, transparent 80%, rgba(255, 255, 255, 0.1) 100%),
+        url("data:image/svg+xml,%3Csvg width='100' height='100' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.5' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.15'/%3E%3C/svg%3E");
+    position: relative;
+    border: 8px solid var(--board-border);
+    border-radius: 4px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.4), inset 0 0 30px rgba(0, 0, 0, 0.3);
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.grid-overlay {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.pieces-layer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    z-index: 10;
+}
+
+.piece {
+    width: var(--piece-size);
+    height: var(--piece-size);
+    border-radius: 50%;
+    background: #f0d9b5;
+    box-shadow:
+        inset 0 -3px 5px rgba(0, 0, 0, 0.3),
+        inset 0 3px 5px rgba(255, 255, 255, 0.8),
+        2px 2px 5px rgba(0, 0, 0, 0.4);
+    border: 2px solid #b8860b;
+    position: absolute;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 32px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), top 0.3s, left 0.3s;
+    transform: translate(-50%, -50%);
+    background-image: linear-gradient(135deg, #fff8e7 0%, #f0d9b5 100%);
+}
+
+.piece::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    right: 3px;
+    bottom: 3px;
+    border-radius: 50%;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.piece.red {
+    color: var(--red-color);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.piece.black {
+    color: var(--black-color);
+    text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+
+.piece.selected {
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: var(--selected-shadow);
+    z-index: 20;
+    background-color: #fff;
+}
+
+.piece.last-move {
+    box-shadow: var(--last-move-shadow);
+}
+
+.last-move-from {
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background-color: rgba(255, 0, 0, 0.5);
+    box-shadow: 0 0 5px rgba(255, 0, 0, 0.5);
+    transform: translate(-50%, -50%);
+    z-index: 5;
+    pointer-events: none;
+}
+
+.piece.check {
+    box-shadow: 0 0 20px red;
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        box-shadow: 0 0 10px red;
+    }
+
+    50% {
+        box-shadow: 0 0 25px red;
+    }
+
+    100% {
+        box-shadow: 0 0 10px red;
+    }
+}
+
+/* 揭棋模式 - 暗棋样式 */
+.piece.hidden {
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
+        radial-gradient(circle at 50% 50%, rgba(160, 82, 45, 0.2) 0%, transparent 60%),
+        linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
+    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    color: transparent !important;
+    text-shadow: none !important;
+    font-size: 0 !important;
+    text-indent: -9999px;
+    overflow: hidden;
+}
+
+/* 覆盖原有的 ::before 边框 */
+.piece.hidden::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-image: 
+        repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(222, 184, 135, 0.15) 8px, rgba(222, 184, 135, 0.15) 10px),
+        repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(222, 184, 135, 0.1) 8px, rgba(222, 184, 135, 0.1) 10px),
+        radial-gradient(circle at center, rgba(222, 184, 135, 0.2) 0%, transparent 70%);
+    border-radius: 50%;
+    border: 1px solid rgba(139, 69, 19, 0.3);
+    z-index: 10;
+    pointer-events: none;
+}
+
+.piece.hidden::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 70%;
+    height: 70%;
+    background: 
+        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.4) 2px, transparent 2px),
+        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.4) 2px, transparent 2px),
+        radial-gradient(circle at 50% 20%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px),
+        radial-gradient(circle at 20% 50%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px),
+        radial-gradient(circle at 80% 50%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px),
+        radial-gradient(circle at 50% 80%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px);
+    background-size: 25% 25%, 25% 25%, 20% 20%, 20% 20%, 20% 20%, 20% 20%;
+    background-position: 0% 0%, 100% 100%, 50% 0%, 0% 50%, 100% 50%, 50% 100%;
+    border-radius: 50%;
+    z-index: 11;
+    pointer-events: none;
+}
+
+/* 翻棋动画 */
+@keyframes flip {
+    0% {
+        transform: translate(-50%, -50%) rotateY(0deg);
+    }
+
+    50% {
+        transform: translate(-50%, -50%) rotateY(90deg);
+    }
+
+    100% {
+        transform: translate(-50%, -50%) rotateY(0deg);
+    }
+}
+
+.piece.flipping {
+    animation: flip 0.6s ease-in-out;
+}
+
+.controls {
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+    min-width: 240px;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 25px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.status-panel {
+    text-align: center;
+}
+
+.status-panel h2 {
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+    color: #deb887;
+}
+
+#game-status {
+    font-size: 1.1rem;
+    margin-bottom: 10px;
+    min-height: 1.5em;
+}
+
+.record {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.record p {
+    font-size: 1rem;
+    color: #deb887;
+}
+
+.record span {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+#win-count {
+    color: #4caf50;
+}
+
+#loss-count {
+    color: #f44336;
+}
+
+.turn-red {
+    color: #ff6b6b;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.turn-black {
+    color: #aaa;
+    font-weight: bold;
+    font-size: 1.2rem;
+}
+
+.settings label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 1rem;
+    color: #ccc;
+}
+
+select {
+    width: 100%;
+    padding: 10px;
+    background: #444;
+    color: white;
+    border: 1px solid #666;
+    border-radius: 6px;
+    font-size: 1rem;
+    outline: none;
+}
+
+.buttons button {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background-color: #5d4037;
+    color: #deb887;
+    border: 1px solid #8b4513;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 18px;
+    font-family: "KaiTi", serif;
+    transition: all 0.2s;
+}
+
+.buttons button:hover {
+    background-color: #795548;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.buttons button:active {
+    transform: translateY(0);
+}
+
+#undo-btn {
+    background-color: #444;
+    border-color: #666;
+    color: #ccc;
+}
+
+#undo-btn:hover {
+    background-color: #555;
+}
+
+@media (max-width: 850px) {
+    .game-container {
+        flex-direction: column;
+        padding: 10px;
+    }
+
+    .main-content {
+        flex-direction: column;
+    }
+
+    .chessboard {
+        transform-origin: top center;
+        transform: scale(0.8);
+        margin-bottom: -100px;
+    }
+}

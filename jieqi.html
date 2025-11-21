@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-mode="jieqi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 揭棋</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="game-container">
+        <div class="header">
+            <h1>AI 揭棋</h1>
+        </div>
+
+        <div class="main-content">
+            <div class="board-wrapper">
+                <!-- 上方：显示被黑方吃掉的棋子（红方棋子） -->
+                <div id="captured-black" class="captured-pieces captured-top"></div>
+                
+                <div id="chessboard" class="chessboard">
+                    <!-- 棋盘线和楚河汉界将由 CSS 或 JS 绘制，棋子将放置在此处 -->
+                    <div class="grid-overlay"></div>
+                    <div class="pieces-layer"></div>
+                </div>
+                
+                <!-- 下方：显示被红方吃掉的棋子（黑方棋子） -->
+                <div id="captured-red" class="captured-pieces captured-bottom"></div>
+            </div>
+
+            <div class="controls">
+                <div class="status-panel">
+                    <p id="game-status">准备就绪</p>
+                    <p>当前回合: <span id="turn-indicator" class="turn-red">红方</span></p>
+                    <div class="record">
+                        <p>战绩: <span id="win-count">0</span>胜 <span id="loss-count">0</span>败</p>
+                    </div>
+                </div>
+
+                <div class="settings">
+                    <label for="difficulty">AI 难度:</label>
+                    <select id="difficulty">
+                        <option value="1">简单</option>
+                        <option value="2" selected>中等</option>
+                        <option value="3">困难</option>
+                    </select>
+                </div>
+
+                <div class="buttons">
+                    <button id="restart-btn">重新开始</button>
+                    <button id="undo-btn">悔棋</button>
+                    <button id="resign-btn">认输</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="engine.js"></script>
+    <script src="jieqi-engine.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
+
