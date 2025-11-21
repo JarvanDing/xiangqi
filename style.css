@@ -19,8 +19,12 @@
 
 body {
     font-family: "KaiTi", "STKaiti", "楷体", serif;
-    background-color: #333;
-    background-image: radial-gradient(#444, #222);
+    background-color: #222;
+    background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -39,11 +43,12 @@ body {
     align-items: center;
     gap: 40px;
     padding: 30px;
-    background: rgba(255, 255, 255, 0.05);
+    background: rgba(20, 20, 20, 0.6);
     border-radius: 16px;
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .header h1 {
