@@ -120,54 +120,23 @@ body {
 
 /* 被吃掉的暗棋样式（保持背面朝上） */
 .captured-piece.hidden {
-    background:
-        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(160, 82, 45, 0.2) 0%, transparent 60%),
-        linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    background-image: url('piece_back.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     color: transparent !important;
     text-shadow: none !important;
     font-size: 0 !important;
     text-indent: -9999px;
     position: relative;
     overflow: hidden;
+    border: none;
+    box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.5);
 }
 
-.captured-piece.hidden::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-        repeating-linear-gradient(45deg, transparent, transparent 6px, rgba(222, 184, 135, 0.15) 6px, rgba(222, 184, 135, 0.15) 8px),
-        repeating-linear-gradient(-45deg, transparent, transparent 6px, rgba(222, 184, 135, 0.1) 6px, rgba(222, 184, 135, 0.1) 8px),
-        radial-gradient(circle at center, rgba(222, 184, 135, 0.2) 0%, transparent 70%);
-    border-radius: 50%;
-    z-index: 1;
-}
-
+.captured-piece.hidden::before,
 .captured-piece.hidden::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 70%;
-    height: 70%;
-    background:
-        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.4) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.4) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 50% 20%, rgba(222, 184, 135, 0.3) 1px, transparent 1px),
-        radial-gradient(circle at 20% 50%, rgba(222, 184, 135, 0.3) 1px, transparent 1px),
-        radial-gradient(circle at 80% 50%, rgba(222, 184, 135, 0.3) 1px, transparent 1px),
-        radial-gradient(circle at 50% 80%, rgba(222, 184, 135, 0.3) 1px, transparent 1px);
-    background-size: 25% 25%, 25% 25%, 20% 20%, 20% 20%, 20% 20%, 20% 20%;
-    background-position: 0% 0%, 100% 100%, 50% 0%, 0% 50%, 100% 50%, 50% 100%;
-    border-radius: 50%;
-    z-index: 2;
+    display: none;
 }
 
 .chessboard {
@@ -289,58 +258,28 @@ body {
 }
 
 /* 揭棋模式 - 暗棋样式 */
+/* 揭棋模式 - 暗棋样式 */
 .piece.hidden {
-    background:
-        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 50% 50%, rgba(160, 82, 45, 0.2) 0%, transparent 60%),
-        linear-gradient(135deg, #8B4513 0%, #A0522D 50%, #8B4513 100%);
-    background-size: 100% 100%, 100% 100%, 100% 100%, 100% 100%;
+    background-image: url('piece_back.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
     color: transparent !important;
     text-shadow: none !important;
     font-size: 0 !important;
     text-indent: -9999px;
     overflow: hidden;
+    border: none;
+    box-shadow:
+        inset 0 -3px 5px rgba(0, 0, 0, 0.5),
+        inset 0 3px 5px rgba(255, 255, 255, 0.2),
+        2px 2px 5px rgba(0, 0, 0, 0.4);
 }
 
-/* 覆盖原有的 ::before 边框 */
-.piece.hidden::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-image:
-        repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(222, 184, 135, 0.15) 8px, rgba(222, 184, 135, 0.15) 10px),
-        repeating-linear-gradient(-45deg, transparent, transparent 8px, rgba(222, 184, 135, 0.1) 8px, rgba(222, 184, 135, 0.1) 10px),
-        radial-gradient(circle at center, rgba(222, 184, 135, 0.2) 0%, transparent 70%);
-    border-radius: 50%;
-    border: 1px solid rgba(139, 69, 19, 0.3);
-    z-index: 10;
-    pointer-events: none;
-}
-
+/* 移除原有的复杂纹理 */
+.piece.hidden::before,
 .piece.hidden::after {
-    content: '';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 70%;
-    height: 70%;
-    background:
-        radial-gradient(circle at 30% 30%, rgba(222, 184, 135, 0.4) 2px, transparent 2px),
-        radial-gradient(circle at 70% 70%, rgba(222, 184, 135, 0.4) 2px, transparent 2px),
-        radial-gradient(circle at 50% 20%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 20% 50%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 80% 50%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px),
-        radial-gradient(circle at 50% 80%, rgba(222, 184, 135, 0.3) 1.5px, transparent 1.5px);
-    background-size: 25% 25%, 25% 25%, 20% 20%, 20% 20%, 20% 20%, 20% 20%;
-    background-position: 0% 0%, 100% 100%, 50% 0%, 0% 50%, 100% 50%, 50% 100%;
-    border-radius: 50%;
-    z-index: 11;
-    pointer-events: none;
+    display: none;
 }
 
 /* 翻棋动画 */
