@@ -437,6 +437,11 @@ select {
     background-color: #555;
 }
 
+.switch-mode-btn {
+    background-color: #8B4513 !important;
+    margin-top: 10px;
+}
+
 /* 响应式设计 */
 @media (max-width: 1200px) {
     :root {
