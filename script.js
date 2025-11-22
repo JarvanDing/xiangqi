@@ -534,6 +534,29 @@ class XiangqiGame {
     updateCapturedPieces() {
         // 更新被红方吃掉的棋子（黑方棋子，显示在下方）
         this.capturedRedEl.innerHTML = '';
+        if (this.engine.capturedBlack) {
+            this.engine.capturedBlack.forEach((pieceCode, index) => {
+                const el = document.createElement('div');
+                el.className = `captured-piece black`;
+
+                // 玩家吃掉的棋子，直接显示内容
+                el.textContent = this.getPieceChar(pieceCode);
+
+                // 如果是揭棋模式，且原本是暗棋，可以添加一个标记（可选）
+                if (this.gameMode === 'jieqi' && this.engine.capturedHiddenPieces) {
+                    const hiddenKey = `black-${index}`;
+                    if (this.engine.capturedHiddenPieces.includes(hiddenKey)) {
+                        // 这里可以添加一个类来表示它曾经是暗棋，但内容必须显示
+                        // el.classList.add('was-hidden'); 
+                    }
+                }
+
+                this.capturedRedEl.appendChild(el);
+            });
+        }
+
+        // 更新被黑方吃掉的棋子（红方棋子，显示在上方）
+        this.capturedBlackEl.innerHTML = '';
         if (this.engine.capturedRed) {
             this.engine.capturedRed.forEach((pieceCode, index) => {
                 const el = document.createElement('div');
@@ -553,35 +576,11 @@ class XiangqiGame {
                     el.textContent = this.getPieceChar(pieceCode);
                 }
 
-                this.capturedRedEl.appendChild(el);
-            });
-        }
-
-        // 更新被黑方吃掉的棋子（红方棋子，显示在上方）
-        this.capturedBlackEl.innerHTML = '';
-        if (this.engine.capturedBlack) {
-            this.engine.capturedBlack.forEach((pieceCode, index) => {
-                const el = document.createElement('div');
-                el.className = `captured-piece black`;
-
-                // 如果是揭棋模式，检查是否是暗棋
-                if (this.gameMode === 'jieqi' && this.engine.capturedHiddenPieces) {
-                    const hiddenKey = `black-${index}`;
-                    if (this.engine.capturedHiddenPieces.includes(hiddenKey)) {
-                        // 暗棋保持背面朝上（CSS的::after会显示问号）
-                        el.classList.add('hidden');
-                        el.textContent = ''; // 清空文本，让CSS显示问号
-                    } else {
-                        el.textContent = this.getPieceChar(pieceCode);
-                    }
-                } else {
-                    el.textContent = this.getPieceChar(pieceCode);
-                }
-
                 this.capturedBlackEl.appendChild(el);
             });
         }
     }
+
 
     resignGame() {
         if (this.gameOver) {
