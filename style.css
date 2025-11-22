@@ -244,6 +244,19 @@ body {
     box-shadow: var(--last-move-shadow);
 }
 
+/* 移动提示点 */
+.move-hint {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(0, 255, 0, 0.8);
+    box-shadow: 0 0 8px rgba(0, 255, 0, 0.8);
+    transform: translate(-50%, -50%);
+    z-index: 100;
+    pointer-events: none;
+}
+
 .last-move-from {
     position: absolute;
     width: 16px;

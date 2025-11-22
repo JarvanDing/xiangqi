@@ -1,5 +1,18 @@
 // jieqi-engine.js - 揭棋引擎
 
+const JIEQI_BOOK = [
+    // 稳健型：挺卒，活通马路，控制河界，试探对方
+    { fromRow: 3, fromCol: 4, toRow: 4, toCol: 4 }, // 中卒进一
+    { fromRow: 3, fromCol: 2, toRow: 4, toCol: 2 }, // 3路卒进一
+    { fromRow: 3, fromCol: 6, toRow: 4, toCol: 6 }, // 7路卒进一
+    { fromRow: 3, fromCol: 0, toRow: 4, toCol: 0 }, // 边卒进一
+    { fromRow: 3, fromCol: 8, toRow: 4, toCol: 8 }, // 边卒进一
+    // 进攻型：直车进一，博取翻出车/炮占据要道，腾出底线空间
+    { fromRow: 0, fromCol: 0, toRow: 1, toCol: 0 }, // 左车进一
+    { fromRow: 0, fromCol: 8, toRow: 1, toCol: 8 }  // 右车进一
+];
+
+
 class JieqiEngine extends XiangqiEngine {
     constructor() {
         super();
@@ -429,9 +442,10 @@ class JieqiEngine extends XiangqiEngine {
     evaluate() {
         let score = 0;
 
-        // 预先计算红黑双方暗棋的平均价值
-        const redHiddenAvg = this.getAverageHiddenValue(true);
-        const blackHiddenAvg = this.getAverageHiddenValue(false);
+        // 使用预计算的暗棋平均价值 (在 getBestMove 中计算)
+        // 如果没有预计算（如在UI显示评估分时），则实时计算
+        const redHiddenAvg = this.currentRedHiddenAvg !== undefined ? this.currentRedHiddenAvg : this.getAverageHiddenValue(true);
+        const blackHiddenAvg = this.currentBlackHiddenAvg !== undefined ? this.currentBlackHiddenAvg : this.getAverageHiddenValue(false);
 
         for (let r = 0; r < 10; r++) {
             for (let c = 0; c < 9; c++) {
@@ -444,14 +458,26 @@ class JieqiEngine extends XiangqiEngine {
                         const originalType = this.getHiddenPieceRule(r, c);
                         if (originalType) {
                             const isRed = this.isRedSide(r);
-                            // 使用动态计算的平均价值
+                            // 1. 基础价值：暗棋的平均期望价值
                             const expectedValue = isRed ? redHiddenAvg : blackHiddenAvg;
+
+                            // 2. 角色加成 (Role Bonus)：
+                            // 暗棋在未揭开前，具有该位置棋子的移动能力和威慑力。
+                            // 例如：暗车虽然本质是随机的，但它不动时能封锁线路，具有“假车”的战术价值。
+                            // 我们给予它当前角色价值的 25% 作为“威慑分”，鼓励 AI 保留强力暗棋（如车/炮）。
+                            const roleChar = isRed ? originalType.toUpperCase() : originalType;
+                            const roleValue = this.getPieceValue(roleChar);
+                            const roleBonus = roleValue * 0.25;
+
+                            const finalValue = expectedValue + roleBonus;
+
+                            // 3. 位置价值：使用当前角色的 PST
                             const pstVal = this.getPSTForType(originalType, r, c, isRed);
 
                             if (isRed) {
-                                score += (expectedValue + pstVal);
+                                score += (finalValue + pstVal);
                             } else {
-                                score -= (expectedValue + pstVal);
+                                score -= (finalValue + pstVal);
                             }
                         }
                     } else {
@@ -786,64 +812,44 @@ class JieqiEngine extends XiangqiEngine {
     // 重写 orderMoves：使用期望价值进行排序，支持置换表最佳移动优先
     orderMoves(moves, bestMove = null) {
         // 预先计算暗棋价值，避免在循环中重复计算
-        const redHiddenAvg = this.getAverageHiddenValue(true);
-        const blackHiddenAvg = this.getAverageHiddenValue(false);
+        const redHiddenAvg = this.currentRedHiddenAvg !== undefined ? this.currentRedHiddenAvg : this.getAverageHiddenValue(true);
+        const blackHiddenAvg = this.currentBlackHiddenAvg !== undefined ? this.currentBlackHiddenAvg : this.getAverageHiddenValue(false);
 
-        moves.sort((a, b) => {
-            // 1. 置换表最佳移动优先 (Hash Move)
-            if (bestMove) {
-                const isA = a.fromRow === bestMove.fromRow && a.fromCol === bestMove.fromCol && a.toRow === bestMove.toRow && a.toCol === bestMove.toCol;
-                const isB = b.fromRow === bestMove.fromRow && b.fromCol === bestMove.fromCol && b.toRow === bestMove.toRow && b.toCol === bestMove.toCol;
-                if (isA) return -1;
-                if (isB) return 1;
+        moves.forEach(move => {
+            move.score = 0;
+            // 1. 置换表最佳移动优先
+            if (bestMove && move.fromRow === bestMove.fromRow && move.fromCol === bestMove.fromCol && move.toRow === bestMove.toRow && move.toCol === bestMove.toCol) {
+                move.score = 2000000;
+                return;
             }
 
-            const pieceA = this.board[a.fromRow][a.fromCol];
-            const targetA = this.board[a.toRow][a.toCol];
+            const target = this.board[move.toRow][move.toCol];
+            const piece = this.board[move.fromRow][move.fromCol];
 
-            let valA = 0;
-            if (targetA !== '.') {
+            if (target !== '.') {
+                // MVV-LVA
                 let targetVal = 0;
-                if (this.isHidden(a.toRow, a.toCol)) {
-                    targetVal = this.isRedSide(a.toRow) ? redHiddenAvg : blackHiddenAvg;
+                if (this.isHidden(move.toRow, move.toCol)) {
+                    targetVal = this.isRedSide(move.toRow) ? redHiddenAvg : blackHiddenAvg;
                 } else {
-                    targetVal = this.getPieceValue(targetA);
+                    targetVal = this.getPieceValue(target);
                 }
 
                 let pieceVal = 0;
-                if (this.isHidden(a.fromRow, a.fromCol)) {
-                    pieceVal = this.isRedSide(a.fromRow) ? redHiddenAvg : blackHiddenAvg;
+                if (this.isHidden(move.fromRow, move.fromCol)) {
+                    pieceVal = this.isRedSide(move.fromRow) ? redHiddenAvg : blackHiddenAvg;
                 } else {
-                    pieceVal = this.getPieceValue(pieceA);
+                    pieceVal = this.getPieceValue(piece);
                 }
 
-                valA = 10 * targetVal - pieceVal;
+                move.score = 1000000 + (10 * targetVal - pieceVal);
+            } else {
+                // 历史启发
+                move.score = this.getHistoryScore(move.fromRow, move.fromCol, move.toRow, move.toCol);
             }
-
-            const pieceB = this.board[b.fromRow][b.fromCol];
-            const targetB = this.board[b.toRow][b.toCol];
-
-            let valB = 0;
-            if (targetB !== '.') {
-                let targetVal = 0;
-                if (this.isHidden(b.toRow, b.toCol)) {
-                    targetVal = this.isRedSide(b.toRow) ? redHiddenAvg : blackHiddenAvg;
-                } else {
-                    targetVal = this.getPieceValue(targetB);
-                }
-
-                let pieceVal = 0;
-                if (this.isHidden(b.fromRow, b.fromCol)) {
-                    pieceVal = this.isRedSide(b.fromRow) ? redHiddenAvg : blackHiddenAvg;
-                } else {
-                    pieceVal = this.getPieceValue(pieceB);
-                }
-
-                valB = 10 * targetVal - pieceVal;
-            }
-
-            return valB - valA;
         });
+
+        moves.sort((a, b) => b.score - a.score);
     }
 
     // 重写 quiescenceSearch
@@ -959,7 +965,10 @@ class JieqiEngine extends XiangqiEngine {
                     bestMoveFound = move;
                 }
                 alpha = Math.max(alpha, evalScore);
-                if (beta <= alpha) break;
+                if (beta <= alpha) {
+                    this.updateHistoryScore(move.fromRow, move.fromCol, move.toRow, move.toCol, depth);
+                    break;
+                }
             }
         } else {
             for (const move of moves) {
@@ -983,7 +992,10 @@ class JieqiEngine extends XiangqiEngine {
                     bestMoveFound = move;
                 }
                 beta = Math.min(beta, evalScore);
-                if (beta <= alpha) break;
+                if (beta <= alpha) {
+                    this.updateHistoryScore(move.fromRow, move.fromCol, move.toRow, move.toCol, depth);
+                    break;
+                }
             }
         }
 
@@ -1017,6 +1029,18 @@ class JieqiEngine extends XiangqiEngine {
 
         const isRed = false; // AI 是黑方
         let bestMove = null;
+
+        // 预计算暗棋平均价值，供搜索期间使用 (避免重复计算)
+        this.currentRedHiddenAvg = this.getAverageHiddenValue(true);
+        this.currentBlackHiddenAvg = this.getAverageHiddenValue(false);
+
+        // 0. 查阅开局库 (仅第一步)
+        if (this.history.length === 0) {
+            const randomMove = JIEQI_BOOK[Math.floor(Math.random() * JIEQI_BOOK.length)];
+            if (this.isValidMove(randomMove.fromRow, randomMove.fromCol, randomMove.toRow, randomMove.toCol)) {
+                return randomMove;
+            }
+        }
 
         // 初始化搜索路径记录 (用于检测重复)
         this.searchPath = new Set();

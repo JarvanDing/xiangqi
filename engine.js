@@ -1,5 +1,17 @@
 // engine.js
 
+const XIANGQI_BOOK = {
+    "rnbakabnr.........c.....c.p.p.p.p.p.....................................P.P.P.P.P.C.....C.........RNBAKABNR": [
+        { fromRow: 7, fromCol: 1, toRow: 7, toCol: 4 }, // 炮二平五
+        { fromRow: 7, fromCol: 7, toRow: 7, toCol: 4 }, // 炮八平五
+        { fromRow: 9, fromCol: 1, toRow: 7, toCol: 2 }, // 马二进三
+        { fromRow: 9, fromCol: 7, toRow: 7, toCol: 6 }, // 马八进七
+        { fromRow: 6, fromCol: 2, toRow: 5, toCol: 2 }, // 兵三进一
+        { fromRow: 6, fromCol: 6, toRow: 5, toCol: 6 }  // 兵七进一
+    ]
+};
+
+
 class XiangqiEngine {
     constructor() {
         this.board = [];
@@ -12,6 +24,7 @@ class XiangqiEngine {
             'K': 10000, 'R': 900, 'N': 450, 'C': 450, 'B': 200, 'A': 200, 'P': 100
         };
         this.tt = new Map(); // 置换表
+        this.historyTable = new Int32Array(90 * 90); // 历史启发表
         this.reset();
     }
 
@@ -38,6 +51,7 @@ class XiangqiEngine {
         this.capturedRed = [];
         this.capturedBlack = [];
         if (this.tt) this.tt.clear();
+        if (this.historyTable) this.historyTable.fill(0);
     }
 
     setDifficulty(level) {
@@ -552,28 +566,40 @@ class XiangqiEngine {
         return score;
     }
 
+    getHistoryScore(fromR, fromC, toR, toC) {
+        const from = fromR * 9 + fromC;
+        const to = toR * 9 + toC;
+        return this.historyTable[from * 90 + to];
+    }
+
+    updateHistoryScore(fromR, fromC, toR, toC, depth) {
+        const from = fromR * 9 + fromC;
+        const to = toR * 9 + toC;
+        this.historyTable[from * 90 + to] += depth * depth;
+    }
+
+
     // MVV-LVA (Most Valuable Victim - Least Valuable Aggressor) 排序
     // MVV-LVA (Most Valuable Victim - Least Valuable Aggressor) 排序
     orderMoves(moves, bestMove = null) {
-        moves.sort((a, b) => {
-            // 1. 置换表最佳移动优先
-            if (bestMove) {
-                const isA = a.fromRow === bestMove.fromRow && a.fromCol === bestMove.fromCol && a.toRow === bestMove.toRow && a.toCol === bestMove.toCol;
-                const isB = b.fromRow === bestMove.fromRow && b.fromCol === bestMove.fromCol && b.toRow === bestMove.toRow && b.toCol === bestMove.toCol;
-                if (isA) return -1;
-                if (isB) return 1;
+        moves.forEach(move => {
+            move.score = 0;
+            if (bestMove && move.fromRow === bestMove.fromRow && move.fromCol === bestMove.fromCol && move.toRow === bestMove.toRow && move.toCol === bestMove.toCol) {
+                move.score = 2000000; // 置换表最佳移动
+            } else {
+                const target = this.board[move.toRow][move.toCol];
+                const piece = this.board[move.fromRow][move.fromCol];
+                if (target !== '.') {
+                    // MVV-LVA
+                    move.score = 1000000 + (10 * this.getPieceValue(target) - this.getPieceValue(piece));
+                } else {
+                    // 历史启发
+                    move.score = this.getHistoryScore(move.fromRow, move.fromCol, move.toRow, move.toCol);
+                }
             }
-
-            const pieceA = this.board[a.fromRow][a.fromCol];
-            const targetA = this.board[a.toRow][a.toCol];
-            const valA = targetA !== '.' ? (10 * this.getPieceValue(targetA) - this.getPieceValue(pieceA)) : 0;
-
-            const pieceB = this.board[b.fromRow][b.fromCol];
-            const targetB = this.board[b.toRow][b.toCol];
-            const valB = targetB !== '.' ? (10 * this.getPieceValue(targetB) - this.getPieceValue(pieceB)) : 0;
-
-            return valB - valA;
         });
+
+        moves.sort((a, b) => b.score - a.score);
     }
 
     // 静态搜索：解决水平线效应，只搜索吃子移动
@@ -679,7 +705,10 @@ class XiangqiEngine {
                     bestMoveFound = move;
                 }
                 alpha = Math.max(alpha, evalScore);
-                if (beta <= alpha) break;
+                if (beta <= alpha) {
+                    this.updateHistoryScore(move.fromRow, move.fromCol, move.toRow, move.toCol, depth);
+                    break;
+                }
             }
         } else {
             for (const move of moves) {
@@ -699,7 +728,10 @@ class XiangqiEngine {
                     bestMoveFound = move;
                 }
                 beta = Math.min(beta, evalScore);
-                if (beta <= alpha) break;
+                if (beta <= alpha) {
+                    this.updateHistoryScore(move.fromRow, move.fromCol, move.toRow, move.toCol, depth);
+                    break;
+                }
             }
         }
 
@@ -730,6 +762,17 @@ class XiangqiEngine {
 
         const isRed = false; // AI 是黑方
         let bestMove = null;
+
+        // 0. 查阅开局库
+        const boardKey = this.getBoardKey();
+        if (XIANGQI_BOOK[boardKey]) {
+            const bookMoves = XIANGQI_BOOK[boardKey];
+            const randomMove = bookMoves[Math.floor(Math.random() * bookMoves.length)];
+            // 验证移动是否合法 (防止开局库错误)
+            if (this.isValidMove(randomMove.fromRow, randomMove.fromCol, randomMove.toRow, randomMove.toCol)) {
+                return randomMove;
+            }
+        }
 
         this.searchPath = new Set(); // 初始化路径记录
 

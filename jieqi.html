@@ -36,7 +36,18 @@
             <div class="controls">
                 <div class="status-panel">
                     <p id="game-status">准备就绪</p>
+                    <div class="timer-panel">
+                        <div class="timer-item timer-red">
+                            <span class="timer-label">红方用时</span>
+                            <span class="timer-value" id="red-timer">00:00</span>
+                        </div>
+                        <div class="timer-item timer-black">
+                            <span class="timer-label">黑方用时</span>
+                            <span class="timer-value" id="black-timer">00:00</span>
+                        </div>
+                    </div>
                     <p>当前回合: <span id="turn-indicator" class="turn-red">红方</span></p>
+                    <div class="current-move-timer">本步用时: <span id="move-timer">00:00</span></div>
                     <div class="record">
                         <p>战绩: <span id="win-count">0</span>胜 <span id="loss-count">0</span>败</p>
                     </div>

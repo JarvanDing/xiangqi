@@ -37,9 +37,20 @@ class XiangqiGame {
         this.soundManager = new SoundManager();
 
         // 战绩统计
+        // 战绩统计
         this.winCountEl = document.getElementById('win-count');
         this.lossCountEl = document.getElementById('loss-count');
         this.loadRecord();
+
+        // 计时器
+        this.redTimerEl = document.getElementById('red-timer');
+        this.blackTimerEl = document.getElementById('black-timer');
+        this.moveTimerEl = document.getElementById('move-timer');
+        this.redTime = 0;
+        this.blackTime = 0;
+        this.moveTime = 0;
+        this.timerInterval = null;
+        this.lastTime = 0;
 
         // 移动端优化
         this.updateBoardDimensions();
@@ -209,6 +220,62 @@ class XiangqiGame {
         this.updateCapturedPieces();
         this.saveGameState();
         this.soundManager.playStart();
+
+        // 重置计时器
+        this.redTime = 0;
+        this.blackTime = 0;
+        this.moveTime = 0;
+        this.startTimer();
+    }
+
+    startTimer() {
+        this.stopTimer();
+        this.lastTime = Date.now();
+        this.moveTime = 0;
+        this.updateTimerDisplay();
+
+        this.timerInterval = setInterval(() => {
+            const now = Date.now();
+            const delta = Math.floor((now - this.lastTime) / 1000);
+
+            if (delta >= 1) {
+                this.lastTime = now;
+                this.moveTime++;
+
+                if (this.turn === 'red') {
+                    this.redTime++;
+                } else {
+                    this.blackTime++;
+                }
+
+                this.updateTimerDisplay();
+            }
+        }, 1000);
+    }
+
+    stopTimer() {
+        if (this.timerInterval) {
+            clearInterval(this.timerInterval);
+            this.timerInterval = null;
+        }
+    }
+
+    updateTimerDisplay() {
+        if (this.redTimerEl) this.redTimerEl.textContent = this.formatTime(this.redTime);
+        if (this.blackTimerEl) this.blackTimerEl.textContent = this.formatTime(this.blackTime);
+        if (this.moveTimerEl) this.moveTimerEl.textContent = this.formatTime(this.moveTime);
+    }
+
+    formatTime(seconds) {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    }
+
+    triggerHapticFeedback() {
+        if (navigator.vibrate) {
+            navigator.vibrate(50); // 震动 50ms
+        }
     }
 
     renderBoard() {
@@ -237,10 +304,10 @@ class XiangqiGame {
         const el = document.createElement('div');
         el.dataset.row = row;
         el.dataset.col = col;
-        
+
         // 揭棋模式:检查是否是暗棋
         const isHidden = this.gameMode === 'jieqi' && this.engine.isHidden && this.engine.isHidden(row, col);
-        
+
         if (isHidden) {
             // 暗棋：不存储真实棋子代码，防止玩家通过 DOM 查看
             el.className = 'piece hidden';
@@ -338,7 +405,29 @@ class XiangqiGame {
         if (el) {
             el.classList.add('selected');
             this.soundManager.playSelect();
+            this.triggerHapticFeedback();
+            this.showMoveHints(row, col);
         }
+    }
+
+    showMoveHints(row, col) {
+        // 清除旧的提示
+        document.querySelectorAll('.move-hint').forEach(el => el.remove());
+
+        // 获取所有合法移动
+        const moves = this.engine.getAllLegalMoves(this.turn === 'red');
+        console.log(`Selected piece at ${row},${col}. Turn: ${this.turn}. Legal moves found: ${moves.length}`);
+
+        // 过滤出当前选中棋子的移动
+        const pieceMoves = moves.filter(m => m.fromRow === row && m.fromCol === col);
+        console.log(`Moves for selected piece: ${pieceMoves.length}`);
+
+        pieceMoves.forEach(move => {
+            const hint = document.createElement('div');
+            hint.className = 'move-hint';
+            this.updatePiecePosition(hint, move.toRow, move.toCol);
+            this.piecesLayer.appendChild(hint);
+        });
     }
 
     deselectPiece() {
@@ -346,6 +435,8 @@ class XiangqiGame {
             const el = document.querySelector(`.piece[data-row='${this.selectedPiece.row}'][data-col='${this.selectedPiece.col}']`);
             if (el) el.classList.remove('selected');
             this.selectedPiece = null;
+            // 清除提示
+            document.querySelectorAll('.move-hint').forEach(el => el.remove());
         }
     }
 
@@ -434,6 +525,11 @@ class XiangqiGame {
         // 4. Sound
         if (isCapture) this.soundManager.playCapture();
         else this.soundManager.playMove();
+        this.triggerHapticFeedback();
+
+        // 重置当前步计时
+        this.moveTime = 0;
+        this.updateTimerDisplay();
 
         // 5. Highlights
         this.deselectPiece();
@@ -452,6 +548,7 @@ class XiangqiGame {
                 this.updateRecord(false); // 记录失败
             }
             this.saveGameState();
+            this.stopTimer();
             return;
         }
 
@@ -484,6 +581,7 @@ class XiangqiGame {
                 this.updateRecord(false); // 记录失败
             }
             this.saveGameState();
+            this.stopTimer();
             return;
         }
 
@@ -511,6 +609,7 @@ class XiangqiGame {
             this.gameOver = true;
             this.updateStatus('游戏结束，红方获胜! (AI困毙)');
             this.saveGameState();
+            this.stopTimer();
         }
     }
 
@@ -532,6 +631,16 @@ class XiangqiGame {
         this.renderBoard();
         this.updateTurnIndicator();
         this.updateCapturedPieces();
+
+        // 如果游戏之前结束了，重新开始计时
+        if (this.gameOver) {
+            this.startTimer();
+        } else {
+            // 否则只重置当前步计时
+            this.moveTime = 0;
+            this.updateTimerDisplay();
+        }
+
         this.gameOver = false;
         this.updateStatus('悔棋成功');
         this.saveGameState();
@@ -620,6 +729,7 @@ class XiangqiGame {
             this.soundManager.playLose();
             this.updateRecord(false); // 记录失败
             this.saveGameState();
+            this.stopTimer();
         }
     }
 
@@ -673,6 +783,9 @@ class XiangqiGame {
                 gameMode: this.gameMode,
                 capturedRed: this.engine.capturedRed || [],
                 capturedBlack: this.engine.capturedBlack || [],
+                // 保存计时器状态
+                redTime: this.redTime || 0,
+                blackTime: this.blackTime || 0,
                 timestamp: Date.now()
             };
 
@@ -721,6 +834,12 @@ class XiangqiGame {
             this.gameOver = gameState.gameOver || false;
             this.difficulty = gameState.difficulty || 2;
 
+            // 恢复计时器状态
+            this.redTime = gameState.redTime || 0;
+            this.blackTime = gameState.blackTime || 0;
+            this.moveTime = 0; // 重新加载后，当前步计时重置
+            this.updateTimerDisplay();
+
             // 更新 UI
             this.difficultySelect.value = this.difficulty;
             this.engine.setDifficulty(this.difficulty);
@@ -730,6 +849,8 @@ class XiangqiGame {
                 this.updateStatus('游戏已结束(已从上次保存恢复)');
             } else {
                 this.updateStatus(`游戏已恢复，轮到${this.turn === 'red' ? '红方' : '黑方'}走棋`);
+                // 恢复游戏后继续计时
+                this.startTimer();
             }
 
             return true;
