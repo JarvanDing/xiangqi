@@ -7,6 +7,7 @@ class JieqiEngine extends XiangqiEngine {
         this.hiddenPieces = []; // 记录哪些棋子是暗棋
         this.originalPositions = []; // 记录棋子的原始位置(用于判断移动规则)
         this.capturedHiddenPieces = []; // 记录被吃掉的暗棋（保持背面朝上）
+        this.tt = new Map(); // 置换表 (Transposition Table)
     }
 
     reset() {
@@ -17,6 +18,7 @@ class JieqiEngine extends XiangqiEngine {
         this.hiddenPieces = [];
         this.originalPositions = [];
         this.capturedHiddenPieces = [];
+        this.tt.clear(); // 清空置换表
 
         // 分别准备红方和黑方的棋子
         const redPieces = [
@@ -97,6 +99,34 @@ class JieqiEngine extends XiangqiEngine {
         }
 
         this.history = [];
+    }
+
+    // 生成当前状态的唯一哈希键
+    getHashKey() {
+        // 基础棋盘键
+        let key = super.getBoardKey();
+
+        // 添加暗棋信息 (排序以确保唯一性)
+        // 格式: row,col
+        if (this.hiddenPieces.length > 0) {
+            const hiddenStr = this.hiddenPieces
+                .map(p => `${p.row},${p.col}`)
+                .sort()
+                .join('|');
+            key += `#H:${hiddenStr}`;
+        }
+
+        // 添加原始位置信息
+        // 格式: row,col,type
+        if (this.originalPositions.length > 0) {
+            const originalStr = this.originalPositions
+                .map(p => `${p.row},${p.col},${p.type}`)
+                .sort()
+                .join('|');
+            key += `#O:${originalStr}`;
+        }
+
+        return key;
     }
 
     // 获取原始位置对应的棋子类型
@@ -206,6 +236,12 @@ class JieqiEngine extends XiangqiEngine {
 
         // 调用父类的movePiece（会更新棋盘和captured数组）
         super.movePiece(fromRow, fromCol, toRow, toCol);
+
+        // 【修复】更新历史记录中的 Key 为包含暗棋信息的完整 Key
+        // 这样 isValidMove 中的 willCauseRepetition 就能正确识别揭棋的重复局面
+        if (this.history.length > 0) {
+            this.history[this.history.length - 1].key = this.getHashKey();
+        }
 
         // 如果吃掉了暗棋，记录为暗棋（保持背面朝上）
         if (captured && captured !== '.' && capturedWasHidden) {
@@ -747,13 +783,21 @@ class JieqiEngine extends XiangqiEngine {
         }
     }
 
-    // 重写 orderMoves：使用期望价值进行排序
-    orderMoves(moves) {
+    // 重写 orderMoves：使用期望价值进行排序，支持置换表最佳移动优先
+    orderMoves(moves, bestMove = null) {
         // 预先计算暗棋价值，避免在循环中重复计算
         const redHiddenAvg = this.getAverageHiddenValue(true);
         const blackHiddenAvg = this.getAverageHiddenValue(false);
 
         moves.sort((a, b) => {
+            // 1. 置换表最佳移动优先 (Hash Move)
+            if (bestMove) {
+                const isA = a.fromRow === bestMove.fromRow && a.fromCol === bestMove.fromCol && a.toRow === bestMove.toRow && a.toCol === bestMove.toCol;
+                const isB = b.fromRow === bestMove.fromRow && b.fromCol === bestMove.fromCol && b.toRow === bestMove.toRow && b.toCol === bestMove.toCol;
+                if (isA) return -1;
+                if (isB) return 1;
+            }
+
             const pieceA = this.board[a.fromRow][a.fromCol];
             const targetA = this.board[a.toRow][a.toCol];
 
@@ -849,8 +893,28 @@ class JieqiEngine extends XiangqiEngine {
         return isMaximizing ? alpha : beta;
     }
 
-    // 重写 minimax
+    // 重写 minimax，加入置换表支持
     minimax(depth, isMaximizing, alpha, beta) {
+        // 1. 检查置换表
+        const stateKey = this.getHashKey();
+
+        // 【修复】检查搜索路径重复 (Path Repetition)
+        // 防止 AI 在思考过程中陷入 A->B->A 的死循环，导致反复将军
+        if (this.searchPath && this.searchPath.has(stateKey)) {
+            return 0; // 视为和棋
+        }
+
+        // 区分最大化和最小化节点
+        const ttKey = stateKey + (isMaximizing ? ':max' : ':min');
+        const ttEntry = this.tt.get(ttKey);
+
+        if (ttEntry && ttEntry.depth >= depth) {
+            if (ttEntry.flag === 'exact') return ttEntry.score;
+            if (ttEntry.flag === 'lower' && ttEntry.score > alpha) alpha = ttEntry.score;
+            if (ttEntry.flag === 'upper' && ttEntry.score < beta) beta = ttEntry.score;
+            if (alpha >= beta) return ttEntry.score;
+        }
+
         if (depth === 0) {
             return this.quiescenceSearch(alpha, beta, isMaximizing);
         }
@@ -861,10 +925,19 @@ class JieqiEngine extends XiangqiEngine {
             return isMaximizing ? -200000 + (10 - depth) : 200000 - (10 - depth);
         }
 
-        this.orderMoves(moves);
+        // 记录当前路径
+        if (this.searchPath) this.searchPath.add(stateKey);
+
+        // 使用置换表中的最佳移动来优化排序
+        const bestMove = ttEntry ? ttEntry.bestMove : null;
+        this.orderMoves(moves, bestMove);
+
+        let bestScore = isMaximizing ? -Infinity : Infinity;
+        let bestMoveFound = null;
+        let originalAlpha = alpha;
+        let originalBeta = beta;
 
         if (isMaximizing) {
-            let maxEval = -Infinity;
             for (const move of moves) {
                 const originalTarget = this.board[move.toRow][move.toCol];
                 const movingPiece = this.board[move.fromRow][move.fromCol];
@@ -881,13 +954,14 @@ class JieqiEngine extends XiangqiEngine {
 
                 this.restoreStateAfterMove(move.fromRow, move.fromCol, move.toRow, move.toCol, state);
 
-                maxEval = Math.max(maxEval, evalScore);
+                if (evalScore > bestScore) {
+                    bestScore = evalScore;
+                    bestMoveFound = move;
+                }
                 alpha = Math.max(alpha, evalScore);
                 if (beta <= alpha) break;
             }
-            return maxEval;
         } else {
-            let minEval = Infinity;
             for (const move of moves) {
                 const originalTarget = this.board[move.toRow][move.toCol];
                 const movingPiece = this.board[move.fromRow][move.fromCol];
@@ -904,31 +978,66 @@ class JieqiEngine extends XiangqiEngine {
 
                 this.restoreStateAfterMove(move.fromRow, move.fromCol, move.toRow, move.toCol, state);
 
-                minEval = Math.min(minEval, evalScore);
+                if (evalScore < bestScore) {
+                    bestScore = evalScore;
+                    bestMoveFound = move;
+                }
                 beta = Math.min(beta, evalScore);
                 if (beta <= alpha) break;
             }
-            return minEval;
         }
+
+        // 回溯：移除当前路径记录
+        if (this.searchPath) this.searchPath.delete(stateKey);
+
+        // 存储结果到置换表
+        let flag = 'exact';
+        if (bestScore <= originalAlpha) flag = 'upper';
+        else if (bestScore >= originalBeta) flag = 'lower';
+
+        this.tt.set(ttKey, {
+            depth: depth,
+            score: bestScore,
+            flag: flag,
+            bestMove: bestMoveFound
+        });
+
+        return bestScore;
     }
 
-    // 重写 getBestMove
+    // 重写 getBestMove：使用迭代加深 (Iterative Deepening) 和置换表
     getBestMove() {
-        // 备份状态：防止搜索过程污染真实游戏状态
-        const backupHidden = JSON.parse(JSON.stringify(this.hiddenPieces));
-        const backupOriginal = JSON.parse(JSON.stringify(this.originalPositions));
+        // 移除昂贵的深拷贝，依赖 restoreStateAfterMove 保持状态一致性
 
-        try {
-            const depth = this.difficulty + 1;
-            const isRed = false; // AI 是黑方
+        // 动态调整深度和时间限制
+        const baseDepth = this.difficulty + 2; // 基础深度增加，因为有优化
+        const maxDepth = 8; // 最大深度限制
+        const timeLimit = 1500; // 时间限制 1.5 秒
+        const startTime = Date.now();
+
+        const isRed = false; // AI 是黑方
+        let bestMove = null;
+
+        // 初始化搜索路径记录 (用于检测重复)
+        this.searchPath = new Set();
+
+        // 迭代加深搜索
+        for (let depth = 1; depth <= maxDepth; depth++) {
+            // 如果超过基础深度且超时，则停止
+            if (depth > baseDepth && (Date.now() - startTime > timeLimit)) {
+                break;
+            }
+
             const moves = this.getAllLegalMoves(isRed);
-
             if (moves.length === 0) return null;
 
-            this.orderMoves(moves);
+            // 使用上一层迭代的 bestMove 进行排序优化
+            this.orderMoves(moves, bestMove);
 
-            let bestMove = null;
-            let bestValue = Infinity;
+            let currentBestMove = null;
+            let currentBestValue = Infinity; // AI 是黑方，寻找最小值
+            let alpha = -Infinity;
+            let beta = Infinity;
 
             for (const move of moves) {
                 const originalTarget = this.board[move.toRow][move.toCol];
@@ -939,24 +1048,32 @@ class JieqiEngine extends XiangqiEngine {
                 this.board[move.toRow][move.toCol] = movingPiece;
                 this.board[move.fromRow][move.fromCol] = '.';
 
-                const boardValue = this.minimax(depth - 1, true, -Infinity, Infinity);
+                // 根节点是 Min 层，下一层是 Max 层
+                const boardValue = this.minimax(depth - 1, true, alpha, beta);
 
                 this.board[move.fromRow][move.fromCol] = movingPiece;
                 this.board[move.toRow][move.toCol] = originalTarget;
 
                 this.restoreStateAfterMove(move.fromRow, move.fromCol, move.toRow, move.toCol, state);
 
-                if (boardValue < bestValue) {
-                    bestValue = boardValue;
-                    bestMove = move;
+                if (boardValue < currentBestValue) {
+                    currentBestValue = boardValue;
+                    currentBestMove = move;
                 }
+                beta = Math.min(beta, boardValue);
             }
 
-            return bestMove;
-        } finally {
-            // 无论如何，恢复状态
-            this.hiddenPieces = backupHidden;
-            this.originalPositions = backupOriginal;
+            if (currentBestMove) {
+                bestMove = currentBestMove;
+            }
+
+            // 简单的时间检查：如果这一层花了一半以上的时间，下一层很可能不够，直接退出
+            // (仅在达到基础深度后检查)
+            if (depth >= baseDepth && (Date.now() - startTime > timeLimit / 2)) {
+                break;
+            }
         }
+
+        return bestMove;
     }
 }

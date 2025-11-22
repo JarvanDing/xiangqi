@@ -11,6 +11,7 @@ class XiangqiEngine {
             'k': 10000, 'r': 900, 'n': 450, 'c': 450, 'b': 200, 'a': 200, 'p': 100,
             'K': 10000, 'R': 900, 'N': 450, 'C': 450, 'B': 200, 'A': 200, 'P': 100
         };
+        this.tt = new Map(); // 置换表
         this.reset();
     }
 
@@ -36,6 +37,7 @@ class XiangqiEngine {
         this.history = [];
         this.capturedRed = [];
         this.capturedBlack = [];
+        if (this.tt) this.tt.clear();
     }
 
     setDifficulty(level) {
@@ -79,7 +81,7 @@ class XiangqiEngine {
         if (!move) return null;
         this.board[move.fromRow][move.fromCol] = move.piece;
         this.board[move.toRow][move.toCol] = move.captured;
-        
+
         // 如果之前有吃子，恢复被吃掉的棋子
         if (move.captured && move.captured !== '.') {
             if (move.captured === move.captured.toUpperCase()) {
@@ -90,7 +92,7 @@ class XiangqiEngine {
                 this.capturedBlack.pop();
             }
         }
-        
+
         return move;
     }
 
@@ -398,66 +400,66 @@ class XiangqiEngine {
         const typeMap = {
             'r': () => {
                 // 车：直线移动
-                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({r: tr, c});
-                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({r, c: tc});
+                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({ r: tr, c });
+                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({ r, c: tc });
             },
             'n': () => {
                 // 马：8个可能位置
-                const offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                const offsets = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
                 offsets.forEach(([dr, dc]) => {
                     const tr = r + dr, tc = c + dc;
-                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({ r: tr, c: tc });
                 });
             },
             'b': () => {
                 // 象：4个可能位置
-                const offsets = [[-2,-2],[-2,2],[2,-2],[2,2]];
+                const offsets = [[-2, -2], [-2, 2], [2, -2], [2, 2]];
                 offsets.forEach(([dr, dc]) => {
                     const tr = r + dr, tc = c + dc;
-                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({ r: tr, c: tc });
                 });
             },
             'a': () => {
                 // 士：4个可能位置
-                const offsets = [[-1,-1],[-1,1],[1,-1],[1,1]];
+                const offsets = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
                 offsets.forEach(([dr, dc]) => {
                     const tr = r + dr, tc = c + dc;
-                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({ r: tr, c: tc });
                 });
             },
             'k': () => {
                 // 将/帅：4个可能位置
-                const offsets = [[-1,0],[1,0],[0,-1],[0,1]];
+                const offsets = [[-1, 0], [1, 0], [0, -1], [0, 1]];
                 offsets.forEach(([dr, dc]) => {
                     const tr = r + dr, tc = c + dc;
-                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({ r: tr, c: tc });
                 });
             },
             'c': () => {
                 // 炮：直线移动
-                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({r: tr, c});
-                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({r, c: tc});
+                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({ r: tr, c });
+                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({ r, c: tc });
             },
             'p': () => {
                 // 兵/卒：根据位置和是否过河
                 if (isRed) {
-                    if (r >= 5) targets.push({r: r-1, c}); // 过河前只能向前
+                    if (r >= 5) targets.push({ r: r - 1, c }); // 过河前只能向前
                     else {
-                        targets.push({r: r-1, c}); // 向前
-                        if (c > 0) targets.push({r, c: c-1}); // 向左
-                        if (c < 8) targets.push({r, c: c+1}); // 向右
+                        targets.push({ r: r - 1, c }); // 向前
+                        if (c > 0) targets.push({ r, c: c - 1 }); // 向左
+                        if (c < 8) targets.push({ r, c: c + 1 }); // 向右
                     }
                 } else {
-                    if (r <= 4) targets.push({r: r+1, c}); // 过河前只能向前
+                    if (r <= 4) targets.push({ r: r + 1, c }); // 过河前只能向前
                     else {
-                        targets.push({r: r+1, c}); // 向前
-                        if (c > 0) targets.push({r, c: c-1}); // 向左
-                        if (c < 8) targets.push({r, c: c+1}); // 向右
+                        targets.push({ r: r + 1, c }); // 向前
+                        if (c > 0) targets.push({ r, c: c - 1 }); // 向左
+                        if (c < 8) targets.push({ r, c: c + 1 }); // 向右
                     }
                 }
             }
         };
-        
+
         const generator = typeMap[type];
         if (generator) generator();
         return targets;
@@ -551,8 +553,17 @@ class XiangqiEngine {
     }
 
     // MVV-LVA (Most Valuable Victim - Least Valuable Aggressor) 排序
-    orderMoves(moves) {
+    // MVV-LVA (Most Valuable Victim - Least Valuable Aggressor) 排序
+    orderMoves(moves, bestMove = null) {
         moves.sort((a, b) => {
+            // 1. 置换表最佳移动优先
+            if (bestMove) {
+                const isA = a.fromRow === bestMove.fromRow && a.fromCol === bestMove.fromCol && a.toRow === bestMove.toRow && a.toCol === bestMove.toCol;
+                const isB = b.fromRow === bestMove.fromRow && b.fromCol === bestMove.fromCol && b.toRow === bestMove.toRow && b.toCol === bestMove.toCol;
+                if (isA) return -1;
+                if (isB) return 1;
+            }
+
             const pieceA = this.board[a.fromRow][a.fromCol];
             const targetA = this.board[a.toRow][a.toCol];
             const valA = targetA !== '.' ? (10 * this.getPieceValue(targetA) - this.getPieceValue(pieceA)) : 0;
@@ -609,6 +620,24 @@ class XiangqiEngine {
     }
 
     minimax(depth, isMaximizing, alpha, beta) {
+        // 1. 检查重复 (搜索路径)
+        const stateKey = this.getBoardKey();
+        if (this.searchPath && this.searchPath.has(stateKey)) {
+            return 0; // 和棋
+        }
+
+        // 2. 检查置换表
+        // 区分最大化和最小化节点
+        const ttKey = stateKey + (isMaximizing ? ':max' : ':min');
+        const ttEntry = this.tt.get(ttKey);
+
+        if (ttEntry && ttEntry.depth >= depth) {
+            if (ttEntry.flag === 'exact') return ttEntry.score;
+            if (ttEntry.flag === 'lower' && ttEntry.score > alpha) alpha = ttEntry.score;
+            if (ttEntry.flag === 'upper' && ttEntry.score < beta) beta = ttEntry.score;
+            if (alpha >= beta) return ttEntry.score;
+        }
+
         if (depth === 0) {
             return this.quiescenceSearch(alpha, beta, isMaximizing);
         }
@@ -620,10 +649,19 @@ class XiangqiEngine {
             return isMaximizing ? -200000 + (10 - depth) : 200000 - (10 - depth);
         }
 
-        this.orderMoves(moves);
+        // 记录路径
+        if (this.searchPath) this.searchPath.add(stateKey);
+
+        // 使用置换表优化排序
+        const bestMove = ttEntry ? ttEntry.bestMove : null;
+        this.orderMoves(moves, bestMove);
+
+        let bestScore = isMaximizing ? -Infinity : Infinity;
+        let bestMoveFound = null;
+        let originalAlpha = alpha;
+        let originalBeta = beta;
 
         if (isMaximizing) {
-            let maxEval = -Infinity;
             for (const move of moves) {
                 const originalTarget = this.board[move.toRow][move.toCol];
                 const movingPiece = this.board[move.fromRow][move.fromCol];
@@ -636,13 +674,14 @@ class XiangqiEngine {
                 this.board[move.fromRow][move.fromCol] = movingPiece;
                 this.board[move.toRow][move.toCol] = originalTarget;
 
-                maxEval = Math.max(maxEval, evalScore);
+                if (evalScore > bestScore) {
+                    bestScore = evalScore;
+                    bestMoveFound = move;
+                }
                 alpha = Math.max(alpha, evalScore);
                 if (beta <= alpha) break;
             }
-            return maxEval;
         } else {
-            let minEval = Infinity;
             for (const move of moves) {
                 const originalTarget = this.board[move.toRow][move.toCol];
                 const movingPiece = this.board[move.fromRow][move.fromCol];
@@ -655,47 +694,86 @@ class XiangqiEngine {
                 this.board[move.fromRow][move.fromCol] = movingPiece;
                 this.board[move.toRow][move.toCol] = originalTarget;
 
-                minEval = Math.min(minEval, evalScore);
+                if (evalScore < bestScore) {
+                    bestScore = evalScore;
+                    bestMoveFound = move;
+                }
                 beta = Math.min(beta, evalScore);
                 if (beta <= alpha) break;
             }
-            return minEval;
         }
+
+        // 回溯
+        if (this.searchPath) this.searchPath.delete(stateKey);
+
+        // 存入置换表
+        let flag = 'exact';
+        if (bestScore <= originalAlpha) flag = 'upper';
+        else if (bestScore >= originalBeta) flag = 'lower';
+
+        this.tt.set(ttKey, {
+            depth: depth,
+            score: bestScore,
+            flag: flag,
+            bestMove: bestMoveFound
+        });
+
+        return bestScore;
     }
 
     getBestMove() {
         // 动态调整深度
-        // 难度 1: 深度 2
-        // 难度 2: 深度 3
-        // 难度 3: 深度 4
-        const depth = this.difficulty + 1;
-        const isRed = false; // AI 是黑方（极小化）
-        const moves = this.getAllLegalMoves(isRed);
+        const baseDepth = this.difficulty + 2;
+        const maxDepth = 8;
+        const timeLimit = 1500; // 1.5秒
+        const startTime = Date.now();
 
-        if (moves.length === 0) return null; // 无路可走
-
-        this.orderMoves(moves);
-
+        const isRed = false; // AI 是黑方
         let bestMove = null;
-        let bestValue = Infinity;
 
-        // 根节点搜索
-        for (const move of moves) {
-            const originalTarget = this.board[move.toRow][move.toCol];
-            const movingPiece = this.board[move.fromRow][move.fromCol];
+        this.searchPath = new Set(); // 初始化路径记录
 
-            this.board[move.toRow][move.toCol] = movingPiece;
-            this.board[move.fromRow][move.fromCol] = '.';
+        // 迭代加深
+        for (let depth = 1; depth <= maxDepth; depth++) {
+            if (depth > baseDepth && (Date.now() - startTime > timeLimit)) {
+                break;
+            }
 
-            // 根节点是 Min 层，下一层是 Max 层 (isMaximizing = true)
-            const boardValue = this.minimax(depth - 1, true, -Infinity, Infinity);
+            const moves = this.getAllLegalMoves(isRed);
+            if (moves.length === 0) return null;
 
-            this.board[move.fromRow][move.fromCol] = movingPiece;
-            this.board[move.toRow][move.toCol] = originalTarget;
+            this.orderMoves(moves, bestMove);
 
-            if (boardValue < bestValue) {
-                bestValue = boardValue;
-                bestMove = move;
+            let currentBestMove = null;
+            let currentBestValue = Infinity;
+            let alpha = -Infinity;
+            let beta = Infinity;
+
+            for (const move of moves) {
+                const originalTarget = this.board[move.toRow][move.toCol];
+                const movingPiece = this.board[move.fromRow][move.fromCol];
+
+                this.board[move.toRow][move.toCol] = movingPiece;
+                this.board[move.fromRow][move.fromCol] = '.';
+
+                const boardValue = this.minimax(depth - 1, true, alpha, beta);
+
+                this.board[move.fromRow][move.fromCol] = movingPiece;
+                this.board[move.toRow][move.toCol] = originalTarget;
+
+                if (boardValue < currentBestValue) {
+                    currentBestValue = boardValue;
+                    currentBestMove = move;
+                }
+                beta = Math.min(beta, boardValue);
+            }
+
+            if (currentBestMove) {
+                bestMove = currentBestMove;
+            }
+
+            if (depth >= baseDepth && (Date.now() - startTime > timeLimit / 2)) {
+                break;
             }
         }
 

@@ -18,7 +18,7 @@
 }
 
 body {
-    font-family: "KaiTi", "STKaiti", "楷体", serif;
+    font-family: "KaiTi", "STKaiti", "楷体", "SimKai", "FangSong", "仿宋", "STFangSong", serif;
     background-color: #222;
     background-image: linear-gradient(rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.3)), url('background.png');
     background-size: cover;
@@ -39,9 +39,9 @@ body {
 
 .game-container {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
-    gap: 40px;
+    gap: 20px;
     padding: 30px;
     background: rgba(20, 20, 20, 0.6);
     border-radius: 16px;
@@ -51,14 +51,30 @@ body {
     border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
+.header {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 20px;
+    padding: 15px 0;
+}
+
 .header h1 {
-    display: none;
+    display: block;
+    font-size: 2.5rem;
+    color: #deb887;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+    margin: 0;
+    font-weight: bold;
+    letter-spacing: 0.1em;
 }
 
 .main-content {
     display: flex;
+    flex-direction: row;
     gap: 40px;
     align-items: center;
+    width: 100%;
+    justify-content: center;
 }
 
 .board-wrapper {
@@ -104,6 +120,7 @@ body {
     align-items: center;
     font-size: 24px;
     font-weight: bold;
+    font-family: "KaiTi", "STKaiti", "楷体", "SimKai", "FangSong", "仿宋", "STFangSong", serif;
     background-image: linear-gradient(135deg, #fff8e7 0%, #f0d9b5 100%);
     opacity: 0.7;
 }
@@ -188,6 +205,7 @@ body {
     align-items: center;
     font-size: 32px;
     font-weight: bold;
+    font-family: "KaiTi", "STKaiti", "楷体", "SimKai", "FangSong", "仿宋", "STFangSong", serif;
     cursor: pointer;
     transition: transform 0.2s cubic-bezier(0.25, 0.46, 0.45, 0.94), top 0.3s, left 0.3s;
     transform: translate(-50%, -50%);
@@ -431,6 +449,10 @@ select {
         font-size: 28px;
     }
 
+    .header h1 {
+        font-size: 2.2rem;
+    }
+
     .controls {
         min-width: 200px;
     }
@@ -451,6 +473,15 @@ select {
 
     .piece {
         font-size: 24px;
+    }
+
+    .header {
+        margin-bottom: 15px;
+        padding: 10px 0;
+    }
+
+    .header h1 {
+        font-size: 1.8rem;
     }
 
     .game-container {
@@ -546,6 +577,16 @@ select {
         font-size: 20px;
     }
 
+    .header {
+        margin-bottom: 10px;
+        padding: 8px 0;
+    }
+
+    .header h1 {
+        font-size: 1.5rem;
+        letter-spacing: 0.05em;
+    }
+
     .game-container {
         padding: 5px;
         gap: 10px;
@@ -600,6 +641,16 @@ select {
         /* 移除强制最小尺寸，避免棋子重叠 */
     }
 
+    .header {
+        margin-bottom: 8px;
+        padding: 6px 0;
+    }
+
+    .header h1 {
+        font-size: 1.3rem;
+        letter-spacing: 0.03em;
+    }
+
     body {
         font-size: 14px;
     }
@@ -614,6 +665,16 @@ select {
 
     .piece {
         font-size: 16px;
+    }
+
+    .header {
+        margin-bottom: 6px;
+        padding: 5px 0;
+    }
+
+    .header h1 {
+        font-size: 1.1rem;
+        letter-spacing: 0.02em;
     }
 
     .chessboard {
