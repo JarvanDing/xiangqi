@@ -389,9 +389,14 @@ class JieqiEngine extends XiangqiEngine {
     }
 
     // 重写评估函数：AI不应该知道暗棋的真实身份
-    // 对于暗棋，AI只能基于位置判断颜色，不能看到真实棋子类型
+    // 优化：使用动态概率计算暗棋价值
     evaluate() {
         let score = 0;
+
+        // 预先计算红黑双方暗棋的平均价值
+        const redHiddenAvg = this.getAverageHiddenValue(true);
+        const blackHiddenAvg = this.getAverageHiddenValue(false);
+
         for (let r = 0; r < 10; r++) {
             for (let c = 0; c < 9; c++) {
                 const p = this.board[r][c];
@@ -400,13 +405,11 @@ class JieqiEngine extends XiangqiEngine {
 
                     if (isHidden) {
                         // 对于暗棋，AI不应该知道真实类型
-                        // 1. 基于位置判断颜色（红方在下方 row >= 5，黑方在上方 row < 5）
-                        // 2. 使用原始位置类型的期望价值
                         const originalType = this.getHiddenPieceRule(r, c);
                         if (originalType) {
-                            // 根据位置判断颜色，而不是从真实棋子类型
                             const isRed = this.isRedSide(r);
-                            const expectedValue = this.getExpectedValueForPosition(r, c, originalType);
+                            // 使用动态计算的平均价值
+                            const expectedValue = isRed ? redHiddenAvg : blackHiddenAvg;
                             const pstVal = this.getPSTForType(originalType, r, c, isRed);
 
                             if (isRed) {
@@ -416,7 +419,7 @@ class JieqiEngine extends XiangqiEngine {
                             }
                         }
                     } else {
-                        // 明棋按正常方式评估（已经翻开，可以看到真实类型）
+                        // 明棋按正常方式评估
                         const val = this.getPieceValue(p);
                         const pstVal = this.getPST(p, r, c);
 
@@ -432,63 +435,66 @@ class JieqiEngine extends XiangqiEngine {
         return score;
     }
 
-    // 获取某个位置可能的棋子类型的期望价值
-    getExpectedValueForPosition(row, col, originalType) {
-        // 判断是红方还是黑方
-        const isRed = this.isRedSide(row);
+    // 获取暗棋的动态平均价值
+    getAverageHiddenValue(isRed) {
+        const initialCounts = { 'r': 2, 'n': 2, 'b': 2, 'a': 2, 'c': 2, 'p': 5 };
+        const visibleCounts = { 'r': 0, 'n': 0, 'b': 0, 'a': 0, 'c': 0, 'p': 0 };
 
-        // 根据原始位置类型，计算该位置可能的棋子类型的平均价值
-        return this.getExpectedValueForOriginalType(originalType, isRed);
-    }
-
-    // 根据原始位置类型计算期望价值
-    getExpectedValueForOriginalType(originalType, isRed) {
-        const type = originalType.toLowerCase();
-
-        // 根据原始位置类型，计算该位置可能的所有棋子类型的平均价值
-        // 在揭棋中，每个位置打乱后可能放置不同的棋子
-        if (type === 'r') {
-            // 底线边角位置：可能是车、马、象、士（每种2个，共8个位置）
-            // 平均价值 = (车*2 + 马*2 + 象*2 + 士*2) / 8
-            const values = [
-                this.getPieceValue(isRed ? 'R' : 'r'), // 车
-                this.getPieceValue(isRed ? 'N' : 'n'), // 马
-                this.getPieceValue(isRed ? 'B' : 'b'), // 象
-                this.getPieceValue(isRed ? 'A' : 'a')  // 士
-            ];
-            return (values[0] * 2 + values[1] * 2 + values[2] * 2 + values[3] * 2) / 8;
-        } else if (type === 'c') {
-            // 炮位置：可能是任何15个棋子中的任意一个（除了将/帅）
-            // 简化：使用所有可能棋子的平均价值
-            const values = [
-                this.getPieceValue(isRed ? 'R' : 'r'), // 车
-                this.getPieceValue(isRed ? 'N' : 'n'), // 马
-                this.getPieceValue(isRed ? 'B' : 'b'), // 象
-                this.getPieceValue(isRed ? 'A' : 'a'), // 士
-                this.getPieceValue(isRed ? 'C' : 'c'), // 炮
-                this.getPieceValue(isRed ? 'P' : 'p')  // 兵
-            ];
-            // 车2个、马2个、象2个、士2个、炮2个、兵5个，共15个
-            return (values[0] * 2 + values[1] * 2 + values[2] * 2 +
-                values[3] * 2 + values[4] * 2 + values[5] * 5) / 15;
-        } else if (type === 'p') {
-            // 兵位置：可能是任何15个棋子中的任意一个
-            // 与炮位置相同
-            const values = [
-                this.getPieceValue(isRed ? 'R' : 'r'),
-                this.getPieceValue(isRed ? 'N' : 'n'),
-                this.getPieceValue(isRed ? 'B' : 'b'),
-                this.getPieceValue(isRed ? 'A' : 'a'),
-                this.getPieceValue(isRed ? 'C' : 'c'),
-                this.getPieceValue(isRed ? 'P' : 'p')
-            ];
-            return (values[0] * 2 + values[1] * 2 + values[2] * 2 +
-                values[3] * 2 + values[4] * 2 + values[5] * 5) / 15;
+        // 1. 统计棋盘上的明棋
+        for (let r = 0; r < 10; r++) {
+            for (let c = 0; c < 9; c++) {
+                const p = this.board[r][c];
+                if (p && p !== '.') {
+                    const isPieceRed = (p === p.toUpperCase());
+                    if (isPieceRed === isRed && !this.isHidden(r, c)) {
+                        const type = p.toLowerCase();
+                        if (visibleCounts[type] !== undefined) visibleCounts[type]++;
+                    }
+                }
+            }
         }
 
-        // 默认使用原始类型的价值
-        const baseChar = isRed ? type.toUpperCase() : type;
-        return this.getPieceValue(baseChar);
+        // 2. 统计被吃掉的明棋
+        const capturedArray = isRed ? this.capturedRed : this.capturedBlack;
+        const capturedHiddenArray = this.capturedHiddenPieces || [];
+        const arrayName = isRed ? 'red' : 'black';
+
+        if (capturedArray) {
+            capturedArray.forEach((p, index) => {
+                // 检查这个索引是否在 capturedHiddenPieces 中
+                const isHiddenCapture = capturedHiddenArray.some(id => id === `${arrayName}-${index}`);
+                if (!isHiddenCapture) {
+                    const type = p.toLowerCase();
+                    if (visibleCounts[type] !== undefined) visibleCounts[type]++;
+                }
+            });
+        }
+
+        // 计算剩余未知棋子的总价值和数量
+        let totalValue = 0;
+        let totalCount = 0;
+
+        for (const type in initialCounts) {
+            const count = initialCounts[type] - visibleCounts[type];
+            if (count > 0) {
+                const pieceChar = isRed ? type.toUpperCase() : type;
+                totalValue += this.getPieceValue(pieceChar) * count;
+                totalCount += count;
+            }
+        }
+
+        return totalCount > 0 ? totalValue / totalCount : 0;
+    }
+
+    // 获取某个位置可能的棋子类型的期望价值 (保留此方法以兼容，但建议使用 getAverageHiddenValue)
+    getExpectedValueForPosition(row, col, originalType) {
+        const isRed = this.isRedSide(row);
+        return this.getAverageHiddenValue(isRed);
+    }
+
+    // 根据原始位置类型计算期望价值 (已废弃，由 getAverageHiddenValue 替代)
+    getExpectedValueForOriginalType(originalType, isRed) {
+        return this.getAverageHiddenValue(isRed);
     }
 
     // 判断是否是红方区域
@@ -505,20 +511,24 @@ class JieqiEngine extends XiangqiEngine {
                 if (p && p !== '.') {
                     // 判断是否是己方棋子
                     let isPieceRed;
+                    let pieceType;
                     if (this.isHidden(r, c)) {
                         // 暗棋：基于位置判断颜色（红方在下方，黑方在上方）
                         isPieceRed = this.isRedSide(r);
+                        // 获取原始位置类型
+                        pieceType = this.getHiddenPieceRule(r, c);
                     } else {
                         // 明棋：可以看到真实类型
                         isPieceRed = p === p.toUpperCase();
+                        pieceType = p.toLowerCase();
                     }
 
-                    if (isPieceRed === isRed) {
-                        for (let tr = 0; tr < 10; tr++) {
-                            for (let tc = 0; tc < 9; tc++) {
-                                if (this.isValidMove(r, c, tr, tc)) {
-                                    moves.push({ fromRow: r, fromCol: c, toRow: tr, toCol: tc });
-                                }
+                    if (isPieceRed === isRed && pieceType) {
+                        // 优化：根据棋子类型生成可能的移动，而不是遍历所有90个目标位置
+                        const possibleTargets = this.generatePossibleTargetsJieqi(r, c, pieceType, isPieceRed);
+                        for (const target of possibleTargets) {
+                            if (this.isValidMove(r, c, target.r, target.c)) {
+                                moves.push({ fromRow: r, fromCol: c, toRow: target.r, toCol: target.c });
                             }
                         }
                     }
@@ -526,6 +536,83 @@ class JieqiEngine extends XiangqiEngine {
             }
         }
         return moves;
+    }
+
+    // 根据棋子类型生成可能的目标位置（揭棋版本，考虑暗棋和揭棋规则）
+    generatePossibleTargetsJieqi(r, c, type, isRed) {
+        const targets = [];
+        const typeMap = {
+            'r': () => {
+                // 车：直线移动
+                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({ r: tr, c });
+                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({ r, c: tc });
+            },
+            'n': () => {
+                // 马：8个可能位置
+                const offsets = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({ r: tr, c: tc });
+                });
+            },
+            'b': () => {
+                // 象：4个可能位置（揭棋可过河）
+                const offsets = [[-2, -2], [-2, 2], [2, -2], [2, 2]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({ r: tr, c: tc });
+                });
+            },
+            'a': () => {
+                // 士：4个可能位置（揭棋可过河）
+                const offsets = [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({ r: tr, c: tc });
+                });
+            },
+            'k': () => {
+                // 将/帅：4个可能位置（限制在九宫格内）
+                const offsets = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) {
+                        // 九宫格限制
+                        if (tc >= 3 && tc <= 5) {
+                            if (isRed && tr >= 7 && tr <= 9) targets.push({ r: tr, c: tc });
+                            else if (!isRed && tr >= 0 && tr <= 2) targets.push({ r: tr, c: tc });
+                        }
+                    }
+                });
+            },
+            'c': () => {
+                // 炮：直线移动
+                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({ r: tr, c });
+                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({ r, c: tc });
+            },
+            'p': () => {
+                // 兵/卒：根据位置和是否过河
+                if (isRed) {
+                    if (r >= 5) targets.push({ r: r - 1, c }); // 过河前只能向前
+                    else {
+                        targets.push({ r: r - 1, c }); // 向前
+                        if (c > 0) targets.push({ r, c: c - 1 }); // 向左
+                        if (c < 8) targets.push({ r, c: c + 1 }); // 向右
+                    }
+                } else {
+                    if (r <= 4) targets.push({ r: r + 1, c }); // 过河前只能向前
+                    else {
+                        targets.push({ r: r + 1, c }); // 向前
+                        if (c > 0) targets.push({ r, c: c - 1 }); // 向左
+                        if (c < 8) targets.push({ r, c: c + 1 }); // 向右
+                    }
+                }
+            }
+        };
+
+        const generator = typeMap[type];
+        if (generator) generator();
+        return targets;
     }
 
     // 根据类型获取位置价值（不依赖真实棋子类型）
@@ -662,6 +749,10 @@ class JieqiEngine extends XiangqiEngine {
 
     // 重写 orderMoves：使用期望价值进行排序
     orderMoves(moves) {
+        // 预先计算暗棋价值，避免在循环中重复计算
+        const redHiddenAvg = this.getAverageHiddenValue(true);
+        const blackHiddenAvg = this.getAverageHiddenValue(false);
+
         moves.sort((a, b) => {
             const pieceA = this.board[a.fromRow][a.fromCol];
             const targetA = this.board[a.toRow][a.toCol];
@@ -670,16 +761,14 @@ class JieqiEngine extends XiangqiEngine {
             if (targetA !== '.') {
                 let targetVal = 0;
                 if (this.isHidden(a.toRow, a.toCol)) {
-                    const rule = this.getHiddenPieceRule(a.toRow, a.toCol);
-                    targetVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(a.toRow)) : 0;
+                    targetVal = this.isRedSide(a.toRow) ? redHiddenAvg : blackHiddenAvg;
                 } else {
                     targetVal = this.getPieceValue(targetA);
                 }
 
                 let pieceVal = 0;
                 if (this.isHidden(a.fromRow, a.fromCol)) {
-                    const rule = this.getHiddenPieceRule(a.fromRow, a.fromCol);
-                    pieceVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(a.fromRow)) : 0;
+                    pieceVal = this.isRedSide(a.fromRow) ? redHiddenAvg : blackHiddenAvg;
                 } else {
                     pieceVal = this.getPieceValue(pieceA);
                 }
@@ -694,16 +783,14 @@ class JieqiEngine extends XiangqiEngine {
             if (targetB !== '.') {
                 let targetVal = 0;
                 if (this.isHidden(b.toRow, b.toCol)) {
-                    const rule = this.getHiddenPieceRule(b.toRow, b.toCol);
-                    targetVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(b.toRow)) : 0;
+                    targetVal = this.isRedSide(b.toRow) ? redHiddenAvg : blackHiddenAvg;
                 } else {
                     targetVal = this.getPieceValue(targetB);
                 }
 
                 let pieceVal = 0;
                 if (this.isHidden(b.fromRow, b.fromCol)) {
-                    const rule = this.getHiddenPieceRule(b.fromRow, b.fromCol);
-                    pieceVal = rule ? this.getExpectedValueForOriginalType(rule, this.isRedSide(b.fromRow)) : 0;
+                    pieceVal = this.isRedSide(b.fromRow) ? redHiddenAvg : blackHiddenAvg;
                 } else {
                     pieceVal = this.getPieceValue(pieceB);
                 }

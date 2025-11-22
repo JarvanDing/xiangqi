@@ -598,8 +598,6 @@ select {
     .piece {
         font-size: 18px;
         /* 移除强制最小尺寸，避免棋子重叠 */
-        min-width: auto;
-        min-height: auto;
     }
 
     body {
@@ -616,8 +614,6 @@ select {
 
     .piece {
         font-size: 16px;
-        min-width: auto;
-        min-height: auto;
     }
 
     .chessboard {

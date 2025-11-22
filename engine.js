@@ -370,17 +370,19 @@ class XiangqiEngine {
 
     getAllLegalMoves(isRed) {
         const moves = [];
+        // 优化：只遍历有棋子的位置，而不是所有90个格子
         for (let r = 0; r < 10; r++) {
             for (let c = 0; c < 9; c++) {
                 const p = this.board[r][c];
                 if (p && p !== '.') {
                     const isPieceRed = p === p.toUpperCase();
                     if (isPieceRed === isRed) {
-                        for (let tr = 0; tr < 10; tr++) {
-                            for (let tc = 0; tc < 9; tc++) {
-                                if (this.isValidMove(r, c, tr, tc)) {
-                                    moves.push({ fromRow: r, fromCol: c, toRow: tr, toCol: tc });
-                                }
+                        // 优化：根据棋子类型生成可能的移动，而不是遍历所有90个目标位置
+                        const type = p.toLowerCase();
+                        const possibleTargets = this.generatePossibleTargets(r, c, type, isRed);
+                        for (const target of possibleTargets) {
+                            if (this.isValidMove(r, c, target.r, target.c)) {
+                                moves.push({ fromRow: r, fromCol: c, toRow: target.r, toCol: target.c });
                             }
                         }
                     }
@@ -388,6 +390,77 @@ class XiangqiEngine {
             }
         }
         return moves;
+    }
+
+    // 根据棋子类型生成可能的目标位置（减少无效检查）
+    generatePossibleTargets(r, c, type, isRed) {
+        const targets = [];
+        const typeMap = {
+            'r': () => {
+                // 车：直线移动
+                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({r: tr, c});
+                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({r, c: tc});
+            },
+            'n': () => {
+                // 马：8个可能位置
+                const offsets = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                });
+            },
+            'b': () => {
+                // 象：4个可能位置
+                const offsets = [[-2,-2],[-2,2],[2,-2],[2,2]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                });
+            },
+            'a': () => {
+                // 士：4个可能位置
+                const offsets = [[-1,-1],[-1,1],[1,-1],[1,1]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                });
+            },
+            'k': () => {
+                // 将/帅：4个可能位置
+                const offsets = [[-1,0],[1,0],[0,-1],[0,1]];
+                offsets.forEach(([dr, dc]) => {
+                    const tr = r + dr, tc = c + dc;
+                    if (tr >= 0 && tr < 10 && tc >= 0 && tc < 9) targets.push({r: tr, c: tc});
+                });
+            },
+            'c': () => {
+                // 炮：直线移动
+                for (let tr = 0; tr < 10; tr++) if (tr !== r) targets.push({r: tr, c});
+                for (let tc = 0; tc < 9; tc++) if (tc !== c) targets.push({r, c: tc});
+            },
+            'p': () => {
+                // 兵/卒：根据位置和是否过河
+                if (isRed) {
+                    if (r >= 5) targets.push({r: r-1, c}); // 过河前只能向前
+                    else {
+                        targets.push({r: r-1, c}); // 向前
+                        if (c > 0) targets.push({r, c: c-1}); // 向左
+                        if (c < 8) targets.push({r, c: c+1}); // 向右
+                    }
+                } else {
+                    if (r <= 4) targets.push({r: r+1, c}); // 过河前只能向前
+                    else {
+                        targets.push({r: r+1, c}); // 向前
+                        if (c > 0) targets.push({r, c: c-1}); // 向左
+                        if (c < 8) targets.push({r, c: c+1}); // 向右
+                    }
+                }
+            }
+        };
+        
+        const generator = typeMap[type];
+        if (generator) generator();
+        return targets;
     }
 
     // 棋子位置价值表 (PST)

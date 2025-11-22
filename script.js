@@ -235,16 +235,23 @@ class XiangqiGame {
 
     createPieceElement(row, col, pieceCode) {
         const el = document.createElement('div');
-        el.className = `piece ${this.getPieceColor(pieceCode)}`;
-        el.textContent = this.getPieceChar(pieceCode);
         el.dataset.row = row;
         el.dataset.col = col;
-        el.dataset.code = pieceCode;
-
+        
         // 揭棋模式:检查是否是暗棋
-        if (this.gameMode === 'jieqi' && this.engine.isHidden && this.engine.isHidden(row, col)) {
-            el.classList.add('hidden');
+        const isHidden = this.gameMode === 'jieqi' && this.engine.isHidden && this.engine.isHidden(row, col);
+        
+        if (isHidden) {
+            // 暗棋：不存储真实棋子代码，防止玩家通过 DOM 查看
+            el.className = 'piece hidden';
+            el.textContent = '';  // 清空文本，防止通过 textContent 查看
+            // 不设置 dataset.code，防止通过开发者工具查看
             el.dataset.hidden = 'true';
+        } else {
+            // 明棋：正常显示真实信息
+            el.className = `piece ${this.getPieceColor(pieceCode)}`;
+            el.textContent = this.getPieceChar(pieceCode);
+            el.dataset.code = pieceCode;
         }
 
         // 位置
@@ -360,11 +367,22 @@ class XiangqiGame {
 
     highlightKingCheck(isRed) {
         const kingChar = isRed ? 'K' : 'k';
-        // Note: We need to find the piece element based on code. 
-        // Since there's only one King per side, we can search by code.
-        // However, renderBoard creates elements with data-code.
-        const el = document.querySelector(`.piece[data-code='${kingChar}']`);
-        if (el) el.classList.add('check');
+        // 通过引擎查找将/帅的位置（更安全，不依赖 DOM 的 data-code）
+        let kingPos = null;
+        const board = this.engine.getBoardState();
+        for (let r = 0; r < 10; r++) {
+            for (let c = 0; c < 9; c++) {
+                if (board[r][c] === kingChar) {
+                    kingPos = { r, c };
+                    break;
+                }
+            }
+            if (kingPos) break;
+        }
+        if (kingPos) {
+            const el = document.querySelector(`.piece[data-row='${kingPos.r}'][data-col='${kingPos.c}']`);
+            if (el) el.classList.add('check');
+        }
     }
 
     removeCheckHighlight() {
@@ -392,6 +410,13 @@ class XiangqiGame {
             if (this.gameMode === 'jieqi' && movingPieceEl.dataset.hidden === 'true') {
                 movingPieceEl.classList.add('flipping');
                 setTimeout(() => {
+                    // 现在才设置真实的棋子信息（防作弊：只有在翻开时才暴露真实数据）
+                    const realPiece = this.engine.getPieceAt(toRow, toCol);
+                    if (realPiece) {
+                        movingPieceEl.dataset.code = realPiece;
+                        movingPieceEl.textContent = this.getPieceChar(realPiece);
+                        movingPieceEl.className = `piece ${this.getPieceColor(realPiece)}`;
+                    }
                     movingPieceEl.classList.remove('hidden', 'flipping');
                     movingPieceEl.dataset.hidden = 'false';
                     // 注意：revealPiece已经在引擎的movePiece中调用了
