@@ -54,6 +54,13 @@
                 </div>
 
                 <div class="settings">
+                    <label for="ai-engine">AI 引擎:</label>
+                    <select id="ai-engine">
+                        <option value="builtin" selected>内置引擎</option>
+                        <option value="builtin-enhanced">增强内置引擎</option>
+                        <!-- 未来可以添加更多引擎选项 -->
+                        <!-- <option value="pikafish">皮卡鱼引擎</option> -->
+                    </select>
                     <label for="difficulty">AI 难度:</label>
                     <select id="difficulty">
                         <option value="1">简单</option>
@@ -74,6 +81,9 @@
     </div>
 
     <script src="engine.js"></script>
+    <script src="enhanced-engine.js"></script>
+    <script src="ai-engine-adapter.js"></script>
+    <script src="external-engines.js"></script>
     <script src="script.js"></script>
 </body>
 
