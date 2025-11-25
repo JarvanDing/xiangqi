@@ -26,6 +26,7 @@ class XiangqiGame {
         this.undoBtn = document.getElementById('undo-btn');
         this.resignBtn = document.getElementById('resign-btn');
         this.difficultySelect = document.getElementById('difficulty');
+        this.aiEngineSelect = document.getElementById('ai-engine');
         this.gameModeSelect = document.getElementById('game-mode'); // 可能不存在
         this.capturedRedEl = document.getElementById('captured-red');
         this.capturedBlackEl = document.getElementById('captured-black');
@@ -63,13 +64,25 @@ class XiangqiGame {
     init() {
         console.log("Game Initializing...");
 
+        // 初始化AI引擎管理器
+        this.initAIEngines();
+
         // 根据游戏模式初始化引擎
         if (this.gameMode === 'jieqi') {
             this.engine = new JieqiEngine();
+            this.aiEngine = aiEngineManager.switchEngine('jieqi-builtin');
         } else {
             this.engine = new XiangqiEngine();
+            // 默认使用内置引擎
+            const engineName = this.aiEngineSelect ? this.aiEngineSelect.value : 'builtin';
+            this.switchAIEngine(engineName);
         }
-        this.engine.setDifficulty(this.difficulty);
+        
+        if (this.aiEngine) {
+            this.aiEngine.setDifficulty(this.difficulty);
+        } else {
+            this.engine.setDifficulty(this.difficulty);
+        }
 
         this.drawBoardGrid();
         this.bindEvents();
@@ -79,6 +92,28 @@ class XiangqiGame {
             console.log("Game state loaded from localStorage");
         } else {
             this.startNewGame();
+        }
+    }
+
+    initAIEngines() {
+        // 注册增强版内置引擎
+        if (typeof XiangqiEngine !== 'undefined') {
+            const enhancedEngine = new BuiltInAIEngine(EnhancedXiangqiEngine || XiangqiEngine);
+            aiEngineManager.registerEngine('builtin-enhanced', enhancedEngine);
+        }
+    }
+
+    switchAIEngine(engineName) {
+        if (this.gameMode === 'jieqi') {
+            // 揭棋模式使用专门的引擎
+            this.aiEngine = aiEngineManager.switchEngine('jieqi-builtin');
+        } else {
+            this.aiEngine = aiEngineManager.switchEngine(engineName);
+        }
+        
+        if (this.aiEngine) {
+            this.aiEngine.setDifficulty(this.difficulty);
+            console.log(`Switched to AI engine: ${engineName}`);
         }
     }
 
@@ -159,10 +194,19 @@ class XiangqiGame {
         this.restartBtn.addEventListener('click', () => this.startNewGame());
         this.undoBtn.addEventListener('click', () => this.undoMove());
         this.resignBtn.addEventListener('click', () => this.resignGame());
-        this.difficultySelect.addEventListener('click', (e) => {
+        this.difficultySelect.addEventListener('change', (e) => {
             this.difficulty = parseInt(e.target.value);
-            this.engine.setDifficulty(this.difficulty);
+            if (this.aiEngine) {
+                this.aiEngine.setDifficulty(this.difficulty);
+            } else if (this.engine) {
+                this.engine.setDifficulty(this.difficulty);
+            }
         });
+        if (this.aiEngineSelect) {
+            this.aiEngineSelect.addEventListener('change', (e) => {
+                this.switchAIEngine(e.target.value);
+            });
+        }
 
         // 游戏模式选择（如果存在）
         if (this.gameModeSelect) {
@@ -600,16 +644,34 @@ class XiangqiGame {
     }
 
     makeAIMove() {
-        const move = this.engine.getBestMove();
-        if (move) {
-            this.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+        // 使用AI引擎适配器
+        if (this.aiEngine) {
+            const boardState = this.engine.getBoardState();
+            // AI是黑方，所以isRedTurn应该是false
+            const isRedTurn = false;
+            
+            this.aiEngine.getBestMove(boardState, isRedTurn, (move) => {
+                if (move) {
+                    this.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+                } else {
+                    // AI 困毙检查
+                    this.gameOver = true;
+                    this.updateStatus('游戏结束，红方获胜! (AI困毙)');
+                    this.saveGameState();
+                    this.stopTimer();
+                }
+            });
         } else {
-            // AI 困毙检查？
-            // 如果 AI 无路可走，则判负。
-            this.gameOver = true;
-            this.updateStatus('游戏结束，红方获胜! (AI困毙)');
-            this.saveGameState();
-            this.stopTimer();
+            // 回退到直接调用引擎
+            const move = this.engine.getBestMove();
+            if (move) {
+                this.makeMove(move.fromRow, move.fromCol, move.toRow, move.toCol);
+            } else {
+                this.gameOver = true;
+                this.updateStatus('游戏结束，红方获胜! (AI困毙)');
+                this.saveGameState();
+                this.stopTimer();
+            }
         }
     }
 
